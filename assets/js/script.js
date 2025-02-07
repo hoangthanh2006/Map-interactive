@@ -406,42 +406,75 @@ const firebaseConfig = {
   
   
   firebase.initializeApp(firebaseConfig);
-  const database = firebase.database();
+  // Kết nối Firebase
+// Kết nối Firebase
+const database = firebase.database();
 
-
-
-// Tạo hoặc lấy userId từ localStorage để nhận diện thiết bị
+// 🟢 Kiểm tra `userId` từ localStorage
 let userId = localStorage.getItem("userId");
+
+// 🟢 Kiểm tra trên Firebase nếu `userId` chưa có
 if (!userId) {
-    userId = "device_" + Math.random().toString(36).substr(2, 9);
-    localStorage.setItem("userId", userId);
+    database.ref("users").once("value", (snapshot) => {
+        const users = snapshot.val();
+        let existingUserId = null;
+
+        // Duyệt danh sách users để tìm ID đã tồn tại với cùng thiết bị
+        for (const id in users) {
+            if (users[id].deviceInfo === navigator.userAgent) {
+                existingUserId = id;
+                break;
+            }
+        }
+
+        if (existingUserId) {
+            // Nếu tìm thấy userId cũ -> Sử dụng lại
+            userId = existingUserId;
+            localStorage.setItem("userId", userId);
+        } else {
+            // Nếu không tìm thấy userId -> Tạo mới
+            userId = "device_" + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem("userId", userId);
+            createUserInDatabase();
+        }
+    });
+} else {
+    // Nếu userId đã có -> Kiểm tra trên Firebase
+    database.ref(`users/${userId}`).once("value", (snapshot) => {
+        if (!snapshot.exists()) {
+            createUserInDatabase(); // Nếu chưa có trong Firebase, tạo mới
+        }
+    });
 }
 
-// Tạo một màu ngẫu nhiên cho user nếu chưa có
-let userColor = localStorage.getItem("userColor");
-if (!userColor) {
-    userColor = getRandomColor();
+// 🟢 Tạo dữ liệu người dùng trong Firebase
+function createUserInDatabase() {
+    let userColor = localStorage.getItem("userColor") || getRandomColor();
     localStorage.setItem("userColor", userColor);
+
+    const userData = {
+        lat: 0,
+        lng: 0,
+        color: userColor,
+        timestamp: Date.now(),
+        deviceInfo: navigator.userAgent // Lưu thông tin thiết bị
+    };
+
+    database.ref(`users/${userId}`).set(userData);
 }
 
-// Hàm tạo màu ngẫu nhiên
-function getRandomColor() {
-    return "#" + Math.floor(Math.random() * 16777215).toString(16);
-}
-
-// Cập nhật vị trí người dùng lên Firebase
+// 🟢 Cập nhật vị trí người dùng
 function updateUserLocation(position) {
     const userCoords = {
         lat: position.coords.latitude,
         lng: position.coords.longitude,
-        color: userColor, // Lưu màu vào Firebase
         timestamp: Date.now()
     };
 
-    database.ref(`users/${userId}`).set(userCoords);
+    database.ref(`users/${userId}`).update(userCoords);
 }
 
-// Theo dõi vị trí liên tục
+// 🟢 Theo dõi vị trí liên tục
 navigator.geolocation.watchPosition(updateUserLocation, (error) => {
     console.error("Lỗi lấy vị trí:", error);
 }, {
@@ -449,55 +482,53 @@ navigator.geolocation.watchPosition(updateUserLocation, (error) => {
     maximumAge: 0,
     timeout: 10000
 });
-  
+
+// 🟢 Hiển thị tất cả marker trên bản đồ
 map.on("load", () => {
-  // Lắng nghe thay đổi từ Firebase để hiển thị tất cả thiết bị
-const markers = {}; // Lưu danh sách marker
-database.ref("users").on("value", (snapshot) => {
-    const users = snapshot.val();
-    const bounds = new mapboxgl.LngLatBounds(); // Tạo vùng bao quanh marker
+    const markers = {};
+    database.ref("users").on("value", (snapshot) => {
+        const users = snapshot.val();
+        const bounds = new mapboxgl.LngLatBounds();
 
-    if (!users) return;
+        if (!users) return;
 
-    for (const id in users) {
-        const userData = users[id];
+        for (const id in users) {
+            const userData = users[id];
+            if (!userData || !userData.lat || !userData.lng) continue;
 
-        if (!userData || !userData.lat || !userData.lng) continue;
+            if (!markers[id]) {
+                // Tạo marker mới
+                const el = document.createElement("div");
+                el.className = "user-marker";
+                el.style.backgroundColor = userData.color;
+                el.style.width = "20px";
+                el.style.height = "20px";
+                el.style.borderRadius = "50%";
+                el.style.border = "2px solid white";
 
-        if (!markers[id]) {
-            // Tạo marker mới nếu chưa có
-            const el = document.createElement("div");
-            el.className = "user-marker";
-            el.style.backgroundColor = userData.color || getRandomColor();
-            el.style.width = "20px";
-            el.style.height = "20px";
-            el.style.borderRadius = "50%";
-            el.style.border = "2px solid white";
+                markers[id] = new mapboxgl.Marker(el)
+                    .setLngLat([userData.lng, userData.lat])
+                    .addTo(map);
+            } else {
+                // Cập nhật vị trí marker
+                markers[id].setLngLat([userData.lng, userData.lat]);
+            }
 
-            markers[id] = new mapboxgl.Marker(el)
-                .setLngLat([userData.lng, userData.lat])
-                .addTo(map);
-        } else {
-            // Cập nhật vị trí marker
-            markers[id].setLngLat([userData.lng, userData.lat]);
+            bounds.extend([userData.lng, userData.lat]);
         }
 
-        // Mở rộng vùng nhìn thấy để chứa tất cả marker
-        bounds.extend([userData.lng, userData.lat]);
-    }
-
-    // Nếu có ít nhất một user có vị trí hợp lệ, cập nhật map
-    if (!bounds.isEmpty()) {
-        map.fitBounds(bounds, {
-            padding: 50,
-            maxZoom: 15,
-            duration: 1000
-        });
-    }
+        // Zoom để hiển thị tất cả marker
+        if (!bounds.isEmpty()) {
+            map.fitBounds(bounds, {
+                padding: 50,
+                maxZoom: 15,
+                duration: 1000
+            });
+        }
+    });
 });
 
-    // Hàm random màu nếu user chưa có màu trong Firebase
-    function getRandomColor() {
-        return `#${Math.floor(Math.random() * 16777215).toString(16)}`;
-    }
-});
+// 🎨 Hàm tạo màu ngẫu nhiên
+function getRandomColor() {
+    return `#${Math.floor(Math.random() * 16777215).toString(16)}`;
+}
