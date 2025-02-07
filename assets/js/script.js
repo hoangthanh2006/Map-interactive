@@ -485,6 +485,8 @@ navigator.geolocation.watchPosition(updateUserLocation, (error) => {
     maximumAge: 0,
     timeout: 10000
 });
+// 🟢 Biến kiểm soát lần đầu load map
+let isFirstLoad = true;
 
 // 🟢 Hiển thị tất cả marker trên bản đồ
 map.on("load", () => {
@@ -517,16 +519,20 @@ map.on("load", () => {
                 markers[id].setLngLat([userData.lng, userData.lat]);
             }
 
-            bounds.extend([userData.lng, userData.lat]);
+            // 🟢 Nếu không phải user hiện tại -> mở rộng vùng nhìn thấy
+            if (id !== userId) {
+                bounds.extend([userData.lng, userData.lat]);
+            }
         }
 
-        // Zoom để hiển thị tất cả marker
-        if (!bounds.isEmpty()) {
+        // 🔥 Chỉ zoom đến tất cả marker khi lần đầu load
+        if (!bounds.isEmpty() && isFirstLoad) {
             map.fitBounds(bounds, {
                 padding: 50,
                 maxZoom: 15,
                 duration: 1000
             });
+            isFirstLoad = false; // Sau lần đầu thì không zoom lại nữa
         }
     });
 });
