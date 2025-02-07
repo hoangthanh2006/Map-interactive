@@ -41,6 +41,10 @@
 
 .user-location-marker {
   position: relative;
+
+}
+.user-color {
+    background-color: blueviolet;
 }
 .img-runner {
     width: 150px;

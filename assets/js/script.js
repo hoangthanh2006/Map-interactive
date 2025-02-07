@@ -451,6 +451,12 @@ database.ref("users").on("value", (snapshot) => {
             const el = document.createElement("div");
             el.className = "user-marker";
             el.style.backgroundColor = userData.color || "#007cbf"; // Màu mặc định nếu chưa có
+            // Kiểm tra database nếu màu đã dùng rồi thì chuyển màu khác
+            if (colors.includes(userData.color)) {
+                colors.splice(colors.indexOf(userData.color), 1);
+            }
+            el.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)]; // Chọn màu ngẫu nhiên
+          
 
             markers[id] = new mapboxgl.Marker(el)
                 .setLngLat([userData.lng, userData.lat])
