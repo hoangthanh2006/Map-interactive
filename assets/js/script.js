@@ -199,9 +199,8 @@ zoomOutButton.addEventListener('click', () => {
 // Cập nhật vị trí user
 map.on('load', () => {
     // Tạo marker tuỳ chỉnh
-    const userLocationMarker = document.createElement('div');
-    userLocationMarker.className = 'user-location-marker pulse';
-
+    const userLocationMarker = document.getElementById('user-location-marker');
+  
     Object.assign(userLocationMarker.style, {
         width: '30px',
         height: '30px',

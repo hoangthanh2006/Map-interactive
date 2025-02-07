@@ -40,13 +40,19 @@
 }
 
 .user-location-marker {
-    width: 40px;
-    height: 40px;
-    background: #ff0000;
+  position: relative;
+}
+.img-runner {
+    width: 150px;
+    height: 150px;
     border-radius: 50%;
-    border: 3px solid white;
-    /* animation: pulse 1.5s infinite; */
-    position:static;
+    background-color: #e5ff00;
+    animation: pulse 1s infinite;
+    position: absolute;
+    top: 100%;
+    left: 0%;
+    z-index: 99;
+    transform: translate(-50%, -50%);
 }
 .mapboxgl-marker {
     transform: translate(-50%, -50%);
