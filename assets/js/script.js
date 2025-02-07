@@ -254,7 +254,7 @@ map.on('load', () => {
             map.easeTo({ center: newCoords, zoom: 15 });
         },
         (error) => console.error('Lỗi khi theo dõi vị trí:', error),
-        { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+        { enableHighAccuracy: false, maximumAge: 0, timeout: 10000 }
     );
 
     function animateMarker(startCoords, endCoords, marker) {
