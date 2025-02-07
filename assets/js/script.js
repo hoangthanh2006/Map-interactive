@@ -198,23 +198,35 @@ zoomOutButton.addEventListener('click', () => {
 
 // Cập nhật vị trí user
 map.on('load', () => {
+    const userId = "device_" + Math.random().toString(36).substr(2, 9); // ID duy nhất cho mỗi user
+
     // Tạo marker tuỳ chỉnh
-    const userLocationMarker = document.getElementById('user-location-marker');
-  
+    const userLocationMarker = document.createElement('div');
+    userLocationMarker.className = 'user-location-marker';
+
+    // Kiểm tra nếu user đã có màu trong Firebase
+    database.ref(`users/${userId}/color`).once("value", (snapshot) => {
+        let userColor = snapshot.val();
+        if (!userColor) {
+            userColor = getRandomColor(); // Nếu chưa có, tạo màu ngẫu nhiên
+            database.ref(`users/${userId}/color`).set(userColor); // Lưu vào Firebase
+        }
+        userLocationMarker.style.backgroundColor = userColor; // Gán màu cho marker
+    });
+
     Object.assign(userLocationMarker.style, {
         width: '30px',
         height: '30px',
-        background: '#ff0000',
         borderRadius: '50%',
         border: '3px solid white',
         position: 'absolute',
         transform: 'translate(-50%, -50%)',
-        transition: 'transform 0.3s ease-out' // Làm mượt animation
+        transition: 'transform 0.3s ease-out'
     });
 
-    const marker = new mapboxgl.Marker({
-        element: userLocationMarker
-    }).setLngLat([0, 0]).addTo(map);
+    const marker = new mapboxgl.Marker({ element: userLocationMarker })
+        .setLngLat([0, 0])
+        .addTo(map);
 
     let lastCoords = null;
 
@@ -233,40 +245,40 @@ map.on('load', () => {
             animateMarker(lastCoords, newCoords, marker);
             lastCoords = newCoords;
 
-            // Di chuyển camera mượt theo user
-            map.easeTo({
-                center: newCoords,
-                zoom: 15
+            // Cập nhật vị trí lên Firebase
+            database.ref(`users/${userId}`).update({
+                lat: newCoords[1],
+                lng: newCoords[0]
             });
+
+            map.easeTo({ center: newCoords, zoom: 15 });
         },
         (error) => console.error('Lỗi khi theo dõi vị trí:', error),
-        {
-            enableHighAccuracy: true,
-            maximumAge: 0,
-            timeout: 10000
-        }
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
     );
 
-    // Hàm làm mượt di chuyển marker
     function animateMarker(startCoords, endCoords, marker) {
-        const duration = 500; // Thời gian chuyển động 500ms
+        const duration = 500;
         const startTime = performance.now();
 
         function frame(time) {
-            const progress = Math.min((time - startTime) / duration, 1); // Tính tiến độ từ 0 -> 1
+            const progress = Math.min((time - startTime) / duration, 1);
             const lng = startCoords[0] + (endCoords[0] - startCoords[0]) * progress;
             const lat = startCoords[1] + (endCoords[1] - startCoords[1]) * progress;
 
             marker.setLngLat([lng, lat]);
 
-            if (progress < 1) {
-                requestAnimationFrame(frame);
-            }
+            if (progress < 1) requestAnimationFrame(frame);
         }
 
         requestAnimationFrame(frame);
     }
+
+    function getRandomColor() {
+        return `#${Math.floor(Math.random() * 16777215).toString(16)}`;
+    }
 });
+
 
 
 

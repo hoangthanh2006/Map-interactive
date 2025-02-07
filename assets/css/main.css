@@ -43,6 +43,17 @@
   position: relative;
 
 }
+#user-location-marker {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+   
+    animation: pulse 1s infinite;
+    position: absolute;
+    top: 100%;
+    left: 0%;
+    z-index: 99;
+}
 .user-color {
     background-color: blueviolet;
 }
