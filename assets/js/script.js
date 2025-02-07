@@ -406,7 +406,10 @@ const firebaseConfig = {
   
   
   firebase.initializeApp(firebaseConfig);
-// Kết nối Firebase
+
+
+
+  // Kết nối Firebase
 const database = firebase.database();
 
 // 🟢 Kiểm tra `userId` từ localStorage
@@ -445,28 +448,25 @@ if (!userId) {
     });
 }
 
-// 🟢 Tạo dữ liệu người dùng trong Firebase
+// 🟢 Tạo dữ liệu người dùng trong Firebase (Lưu luôn màu vào user)
 function createUserInDatabase() {
-    let userColor = localStorage.getItem("userColor");
+    database.ref(`users/${userId}`).once("value", (snapshot) => {
+        let userColor = snapshot.val()?.color || getRandomColor(); // Lấy màu cũ nếu có
 
-    if (!userColor) {
-        userColor = getRandomColor(); // Chỉ tạo màu mới nếu chưa có
-        localStorage.setItem("userColor", userColor);
-    }
+        const userData = {
+            lat: 0,
+            lng: 0,
+            color: userColor, // Lưu màu trực tiếp vào user
+            uid: userId,
+            timestamp: Date.now(),
+            deviceInfo: navigator.userAgent // Lưu thông tin thiết bị
+        };
 
-    const userData = {
-        lat: 0,
-        lng: 0,
-        color: userColor,
-        uid: userId,
-        timestamp: Date.now(),
-        deviceInfo: navigator.userAgent // Lưu thông tin thiết bị
-    };
-
-    database.ref(`users/${userId}`).set(userData);
+        database.ref(`users/${userId}`).set(userData);
+    });
 }
 
-// 🟢 Cập nhật vị trí người dùng (Không đổi màu)
+// 🟢 Cập nhật vị trí người dùng (Không thay đổi màu)
 function updateUserLocation(position) {
     const userCoords = {
         lat: position.coords.latitude,
