@@ -396,48 +396,46 @@ const firebaseConfig = {
   firebase.initializeApp(firebaseConfig);
   const database = firebase.database();
   // Tạo ID duy nhất cho thiết bị
-const userId = `user_${Math.random().toString(36).substr(2, 9)}`;
+// Kiểm tra nếu userId chưa tồn tại, thì tạo mới
+let userId = localStorage.getItem("userId");
+if (!userId) {
+    userId = "device_" + Math.random().toString(36).substr(2, 9);
+    localStorage.setItem("userId", userId);
+}
+
 
 // Chọn màu ngẫu nhiên
 const colors = ["#ff0000", "#00ff00", "#0000ff", "#ff00ff", "#ffa500", "#800080"];
 const userColor = colors[Math.floor(Math.random() * colors.length)];
 
+
 // Cập nhật vị trí của người dùng vào Firebase
 function updateUserLocation(position) {
+    const lat = position.coords.latitude;
+    const lng = position.coords.longitude;
+
+    if (!lat || !lng) return; // Kiểm tra nếu lat/lng không hợp lệ
+
     const userCoords = {
-        lat: position.coords.latitude,
-        lng: position.coords.longitude,
-        color: userColor // Lưu màu vào Firebase
+        lat: lat,
+        lng: lng,
+        color: userColor, // Lưu màu vào Firebase
+        timestamp: Date.now()
     };
+
     database.ref(`users/${userId}`).set(userCoords);
 }
 
 // Theo dõi vị trí liên tục
-navigator.geolocation.watchPosition(updateUserLocation);
-  
-  
-  // kết nối nhiều thiết bị
-  navigator.geolocation.watchPosition(
-      (position) => {
-          const userId = "device_" + Math.random().toString(36).substr(2, 9); // Mỗi thiết bị có ID riêng
-          const userCoords = {
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude,
-              timestamp: Date.now()
-          };
-  
-          database.ref("users/" + userId).set(userCoords);
-      },
-      (error) => {
-          console.error("Lỗi lấy vị trí:", error);
-      },
-      {
-          enableHighAccuracy: true,
-          maximumAge: 0,
-          timeout: 10000
-      }
-  );
-  const markers = {}; // Lưu marker của từng user
+navigator.geolocation.watchPosition(updateUserLocation, (error) => {
+    console.error("Lỗi lấy vị trí:", error);
+}, {
+    enableHighAccuracy: true,
+    maximumAge: 0,
+    timeout: 10000
+});
+
+const markers = {};
 
 database.ref("users").on("value", (snapshot) => {
     const users = snapshot.val();
@@ -445,21 +443,21 @@ database.ref("users").on("value", (snapshot) => {
     for (const id in users) {
         const userData = users[id];
 
+        // Kiểm tra nếu lat/lng hợp lệ
+        if (!userData || !userData.lng || !userData.lat) continue;
+
         if (!markers[id]) {
-            // Tạo một marker mới nếu chưa có
+            // Tạo marker mới nếu chưa có
             const el = document.createElement("div");
             el.className = "user-marker";
-            el.style.backgroundColor = userData.color;
+            el.style.backgroundColor = userData.color || "#007cbf"; // Màu mặc định nếu chưa có
 
             markers[id] = new mapboxgl.Marker(el)
                 .setLngLat([userData.lng, userData.lat])
                 .addTo(map);
         } else {
-            // Cập nhật vị trí marker nếu user đã tồn tại
+            // Cập nhật vị trí nếu user đã tồn tại
             markers[id].setLngLat([userData.lng, userData.lat]);
         }
     }
 });
-
-  
-  
