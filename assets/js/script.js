@@ -373,4 +373,93 @@ const drawing = new MapboxDraw({
 // Thêm drawing vào bản đồ
 map.addControl(drawing, 'top-right');
 
-// Tự động nẩ hiện search box
+
+
+
+
+// ----------------- Thêm điểm -----------------
+
+
+const firebaseConfig = {
+    apiKey: "AIzaSyCvZXkxayb40VJFy_9GyAYgZvtmX6ewtig",
+    authDomain: "vm-map-runner.firebaseapp.com",
+    databaseURL: "https://vm-map-runner-default-rtdb.asia-southeast1.firebasedatabase.app/",
+    projectId: "vm-map-runner",
+    storageBucket: "vm-map-runner.firebasestorage.app",
+    messagingSenderId: "665369729555",
+    appId: "1:665369729555:web:92ee8e587b0dace2a33de6",
+    measurementId: "G-16LE1RRKTX"
+  };
+  
+  
+  
+  firebase.initializeApp(firebaseConfig);
+  const database = firebase.database();
+  // Tạo ID duy nhất cho thiết bị
+const userId = `user_${Math.random().toString(36).substr(2, 9)}`;
+
+// Chọn màu ngẫu nhiên
+const colors = ["#ff0000", "#00ff00", "#0000ff", "#ff00ff", "#ffa500", "#800080"];
+const userColor = colors[Math.floor(Math.random() * colors.length)];
+
+// Cập nhật vị trí của người dùng vào Firebase
+function updateUserLocation(position) {
+    const userCoords = {
+        lat: position.coords.latitude,
+        lng: position.coords.longitude,
+        color: userColor // Lưu màu vào Firebase
+    };
+    database.ref(`users/${userId}`).set(userCoords);
+}
+
+// Theo dõi vị trí liên tục
+navigator.geolocation.watchPosition(updateUserLocation);
+  
+  
+  // kết nối nhiều thiết bị
+  navigator.geolocation.watchPosition(
+      (position) => {
+          const userId = "device_" + Math.random().toString(36).substr(2, 9); // Mỗi thiết bị có ID riêng
+          const userCoords = {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+              timestamp: Date.now()
+          };
+  
+          database.ref("users/" + userId).set(userCoords);
+      },
+      (error) => {
+          console.error("Lỗi lấy vị trí:", error);
+      },
+      {
+          enableHighAccuracy: true,
+          maximumAge: 0,
+          timeout: 10000
+      }
+  );
+  const markers = {}; // Lưu marker của từng user
+
+database.ref("users").on("value", (snapshot) => {
+    const users = snapshot.val();
+    
+    for (const id in users) {
+        const userData = users[id];
+
+        if (!markers[id]) {
+            // Tạo một marker mới nếu chưa có
+            const el = document.createElement("div");
+            el.className = "user-marker";
+            el.style.backgroundColor = userData.color;
+
+            markers[id] = new mapboxgl.Marker(el)
+                .setLngLat([userData.lng, userData.lat])
+                .addTo(map);
+        } else {
+            // Cập nhật vị trí marker nếu user đã tồn tại
+            markers[id].setLngLat([userData.lng, userData.lat]);
+        }
+    }
+});
+
+  
+  
