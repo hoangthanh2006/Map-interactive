@@ -455,19 +455,22 @@ map.on("load", () => {
 
     database.ref("users").on("value", (snapshot) => {
         const users = snapshot.val();
-        bounds.setNorthEast([0, 0]); // Reset bounds
-
+        const bounds = new mapboxgl.LngLatBounds(); // Tạo vùng bao quanh marker
+    
+        if (!users) return; // Nếu không có dữ liệu thì thoát
+    
         for (const userId in users) {
             const userData = users[userId];
-
-            if (!userData.lat || !userData.lng) continue; // Kiểm tra dữ liệu hợp lệ
-
+    
+            // Kiểm tra dữ liệu hợp lệ
+            if (!userData || !userData.lat || !userData.lng) continue;
+    
             if (!markers[userId]) {
-                // Tạo một marker mới nếu chưa có
+                // Tạo marker mới nếu chưa có
                 const el = document.createElement("div");
                 el.className = "user-marker";
                 el.style.backgroundColor = userData.color || getRandomColor();
-
+    
                 markers[userId] = new mapboxgl.Marker(el)
                     .setLngLat([userData.lng, userData.lat])
                     .addTo(map);
@@ -475,13 +478,13 @@ map.on("load", () => {
                 // Cập nhật vị trí marker
                 markers[userId].setLngLat([userData.lng, userData.lat]);
             }
-
+    
             // Mở rộng vùng nhìn thấy để chứa tất cả marker
             bounds.extend([userData.lng, userData.lat]);
         }
-
-        // Cập nhật map để bao trọn tất cả marker
-        if (Object.keys(users).length > 0) {
+    
+        // Nếu có ít nhất một user có vị trí hợp lệ, cập nhật map
+        if (!bounds.isEmpty()) {
             map.fitBounds(bounds, {
                 padding: 50, // Khoảng cách từ rìa bản đồ đến marker
                 maxZoom: 15, // Giới hạn zoom tối đa khi fit
@@ -489,6 +492,7 @@ map.on("load", () => {
             });
         }
     });
+    
 
     // Hàm random màu nếu user chưa có màu trong Firebase
     function getRandomColor() {
