@@ -10,25 +10,24 @@ const map = new mapboxgl.Map({
 map.addControl(new mapboxgl.NavigationControl());
 
 // Thêm điều khiển chỉnh sửa địa điểm
-map.addControl(
-    new MapboxGeocoder({
-        accessToken: mapboxgl.accessToken,
-        mapboxgl: mapboxgl,
-        marker: true,
-        placeholder: 'Nhập địa chỉ',
-        language: 'vi',
-        countries: 'vn',
-        zoom: 12,
-        flyTo: true,
-        types: 'address,region,place,locality,neighborhood,poi',
-        placeholder: 'Nhập địa chỉ',
-        flyTo: {
-            animate: true,
-            speed: 1.5
-        }
-    }),
-"top-left"
-);
+// map.addControl(
+//     new MapboxGeocoder({
+//         accessToken: mapboxgl.accessToken,
+//         mapboxgl: mapboxgl,
+//         marker: true,
+//         language: 'vi',
+//         countries: 'vn',
+//         zoom: 12,
+//         flyTo: true,
+//         types: 'address,region,place,locality,neighborhood,poi',
+//         flyTo: {
+//             animate: true,
+//             speed: 1.5
+//         },
+//     }),
+// "top-left", // Vị trí hiển thị 
+
+// );
 
 const geocoder = new MapboxGeocoder({
 accessToken: mapboxgl.accessToken,
@@ -94,7 +93,7 @@ zoomInButton.addEventListener('click', () => {
 
 // Fly-out
 const zoomOutButton = document.getElementById('zoom-out');
-console.log(zoomOutButton)
+
 let zoomOutInterval = null; // Biến để kiểm soát trạng thái interval
 
 zoomOutButton.addEventListener('click', () => {
@@ -125,7 +124,7 @@ zoomOutButton.addEventListener('click', () => {
 
 
 
-// ✅ Thêm điều hướng
+// // ✅ Thêm điều hướng
 // const directions = new MapboxDirections({
 //     accessToken: mapboxgl.accessToken,
 //     unit: 'metric',
@@ -167,9 +166,113 @@ zoomOutButton.addEventListener('click', () => {
   
 //   });
 
-
-
 // map.addControl(directions, 'top-left');
+// Lấy vị trí hiện tại và đặt làm điểm xuất phát
+// navigator.geolocation.getCurrentPosition((position) => {
+//     const userLocation = `${position.coords.longitude},${position.coords.latitude}`;
+//     directions.setOrigin(userLocation);
+// });
+
+// // Khi người dùng click vào bản đồ, đặt điểm đến
+// map.on('click', (e) => {
+//     const destination = `${e.lngLat.lng},${e.lngLat.lat}`;
+//     directions.setDestination(destination);
+// });
+
+// // Button "Start" để reset tuyến đường
+// const startButton = document.getElementById('start');
+// startButton.addEventListener('click', () => {
+//     navigator.geolocation.getCurrentPosition((position) => {
+//         const userLocation = `${position.coords.longitude},${position.coords.latitude}`;
+//         directions.setOrigin(userLocation);
+//         directions.removeRoutes(); // Xóa tuyến đường cũ
+//     });
+// });
+
+// // Button "Stop" để xóa điểm xuất phát và điểm đến
+// const stopButton = document.getElementById('stop');
+// stopButton.addEventListener('click', () => {
+//     directions.setOrigin(null);
+//     directions.setDestination(null);
+// });
+
+// Cập nhật vị trí user
+map.on('load', () => {
+    // Tạo marker tuỳ chỉnh
+    const userLocationMarker = document.createElement('div');
+    userLocationMarker.className = 'user-location-marker pulse';
+
+    Object.assign(userLocationMarker.style, {
+        width: '30px',
+        height: '30px',
+        background: '#ff0000',
+        borderRadius: '50%',
+        border: '3px solid white',
+        position: 'absolute',
+        transform: 'translate(-50%, -50%)',
+        transition: 'transform 0.3s ease-out' // Làm mượt animation
+    });
+
+    const marker = new mapboxgl.Marker({
+        element: userLocationMarker
+    }).setLngLat([0, 0]).addTo(map);
+
+    let lastCoords = null;
+
+    // Theo dõi vị trí liên tục
+    navigator.geolocation.watchPosition(
+        (position) => {
+            const newCoords = [position.coords.longitude, position.coords.latitude];
+
+            if (!lastCoords) {
+                lastCoords = newCoords;
+                marker.setLngLat(newCoords);
+                map.setCenter(newCoords);
+                return;
+            }
+
+            animateMarker(lastCoords, newCoords, marker);
+            lastCoords = newCoords;
+
+            // Di chuyển camera mượt theo user
+            map.easeTo({
+                center: newCoords,
+                zoom: 15
+            });
+        },
+        (error) => console.error('Lỗi khi theo dõi vị trí:', error),
+        {
+            enableHighAccuracy: true,
+            maximumAge: 0,
+            timeout: 10000
+        }
+    );
+
+    // Hàm làm mượt di chuyển marker
+    function animateMarker(startCoords, endCoords, marker) {
+        const duration = 500; // Thời gian chuyển động 500ms
+        const startTime = performance.now();
+
+        function frame(time) {
+            const progress = Math.min((time - startTime) / duration, 1); // Tính tiến độ từ 0 -> 1
+            const lng = startCoords[0] + (endCoords[0] - startCoords[0]) * progress;
+            const lat = startCoords[1] + (endCoords[1] - startCoords[1]) * progress;
+
+            marker.setLngLat([lng, lat]);
+
+            if (progress < 1) {
+                requestAnimationFrame(frame);
+            }
+        }
+
+        requestAnimationFrame(frame);
+    }
+});
+
+
+
+
+
 
 // Khai báo drawing để vẽ đường
 const drawing = new MapboxDraw({
@@ -270,3 +373,5 @@ const drawing = new MapboxDraw({
 
 // Thêm drawing vào bản đồ
 map.addControl(drawing, 'top-right');
+
+// Tự động nẩ hiện search box

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>Title</title>
+    <title>VM Map</title>
     <!-- Required meta tags -->
     <meta charset="utf-8" />
     <meta
@@ -39,37 +39,8 @@
     <!-- mapbox draw -->
     <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.2.0/mapbox-gl-draw.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/mapbox-gl-draw/1.2.0/mapbox-gl-draw.css" rel="stylesheet" />
-
-    <style>
-      #map {
-        width: 100vw;
-        height: 100vh;
-      }
-      #geocoder {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        z-index: 1;
-      }
-      #geocoder-control {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        z-index: 1;
-      }
-      #geocoder-result {
-        position: absolute;
-        top: 50px;
-        left: 10px;
-        z-index: 1;
-      }
-      .rotates {
-        position: absolute;
-        top: 10px;
-        right: 10%;
-        z-index: 1;
-      }
-    </style>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="assets/css/main.css" />
   </head>
 
   <body>
@@ -80,9 +51,9 @@
       <div id="map"></div>
       <div>
         <!-- Thêm điều khiển chỉnh sửa địa điểm -->
-        <div id="geocoder"></div>
-        <div id="geocoder-control"></div>
-        <div id="geocoder-result"></div>
+        <!-- <div id="geocoder"></div> -->
+        <!-- <div id="geocoder-control"></div> -->
+        <!-- <div id="geocoder-result"></div> -->
 
         <!-- Click xoay map -->
      <div class="rotates">
@@ -91,7 +62,10 @@
       <button id="zoom-in">Zoom in</button>
       <button id="zoom-out">Zoom out</button>
      </div>
-
+     <!-- <div class="start">
+      <button id="start">Start</button>
+      <button id="stop">Stop</button>
+     </div> -->
 
       </div>
 
