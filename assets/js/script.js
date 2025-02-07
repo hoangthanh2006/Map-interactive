@@ -450,12 +450,12 @@ navigator.geolocation.watchPosition(updateUserLocation, (error) => {
 const markers = {};
 
 map.on("load", () => {
-    // Khai báo object lưu các marker
     const markers = {};
+    const bounds = new mapboxgl.LngLatBounds(); // Tạo vùng bao toàn bộ marker
 
-    // Lắng nghe dữ liệu từ Firebase
     database.ref("users").on("value", (snapshot) => {
         const users = snapshot.val();
+        bounds.setNorthEast([0, 0]); // Reset bounds
 
         for (const userId in users) {
             const userData = users[userId];
@@ -466,7 +466,7 @@ map.on("load", () => {
                 // Tạo một marker mới nếu chưa có
                 const el = document.createElement("div");
                 el.className = "user-marker";
-                el.style.backgroundColor = userData.color || getRandomColor(); // Màu user
+                el.style.backgroundColor = userData.color || getRandomColor();
 
                 markers[userId] = new mapboxgl.Marker(el)
                     .setLngLat([userData.lng, userData.lat])
@@ -475,6 +475,18 @@ map.on("load", () => {
                 // Cập nhật vị trí marker
                 markers[userId].setLngLat([userData.lng, userData.lat]);
             }
+
+            // Mở rộng vùng nhìn thấy để chứa tất cả marker
+            bounds.extend([userData.lng, userData.lat]);
+        }
+
+        // Cập nhật map để bao trọn tất cả marker
+        if (Object.keys(users).length > 0) {
+            map.fitBounds(bounds, {
+                padding: 50, // Khoảng cách từ rìa bản đồ đến marker
+                maxZoom: 15, // Giới hạn zoom tối đa khi fit
+                duration: 1000 // Hiệu ứng zoom mượt
+            });
         }
     });
 
