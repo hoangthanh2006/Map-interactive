@@ -449,33 +449,37 @@ navigator.geolocation.watchPosition(updateUserLocation, (error) => {
 
 const markers = {};
 
-database.ref("users").on("value", (snapshot) => {
-    const users = snapshot.val();
-    
-    for (const id in users) {
-        const userData = users[id];
+map.on("load", () => {
+    // Khai báo object lưu các marker
+    const markers = {};
 
-        // Kiểm tra nếu lat/lng hợp lệ
-        if (!userData || !userData.lng || !userData.lat) continue;
+    // Lắng nghe dữ liệu từ Firebase
+    database.ref("users").on("value", (snapshot) => {
+        const users = snapshot.val();
 
-        if (!markers[id]) {
-            // Tạo marker mới nếu chưa có
-            const el = document.createElement("div");
-            el.className = "user-marker";
-            el.style.backgroundColor = userData.color || "#007cbf"; // Màu mặc định nếu chưa có
-            // Kiểm tra database nếu màu đã dùng rồi thì chuyển màu khác
-            if (colors.includes(userData.color)) {
-                colors.splice(colors.indexOf(userData.color), 1);
+        for (const userId in users) {
+            const userData = users[userId];
+
+            if (!userData.lat || !userData.lng) continue; // Kiểm tra dữ liệu hợp lệ
+
+            if (!markers[userId]) {
+                // Tạo một marker mới nếu chưa có
+                const el = document.createElement("div");
+                el.className = "user-marker";
+                el.style.backgroundColor = userData.color || getRandomColor(); // Màu user
+
+                markers[userId] = new mapboxgl.Marker(el)
+                    .setLngLat([userData.lng, userData.lat])
+                    .addTo(map);
+            } else {
+                // Cập nhật vị trí marker
+                markers[userId].setLngLat([userData.lng, userData.lat]);
             }
-            el.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)]; // Chọn màu ngẫu nhiên
-          
-
-            markers[id] = new mapboxgl.Marker(el)
-                .setLngLat([userData.lng, userData.lat])
-                .addTo(map);
-        } else {
-            // Cập nhật vị trí nếu user đã tồn tại
-            markers[id].setLngLat([userData.lng, userData.lat]);
         }
+    });
+
+    // Hàm random màu nếu user chưa có màu trong Firebase
+    function getRandomColor() {
+        return `#${Math.floor(Math.random() * 16777215).toString(16)}`;
     }
 });
