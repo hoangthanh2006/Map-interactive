@@ -419,7 +419,7 @@ function loadOnlineUsers() {
         snapshot.forEach((childSnapshot) => {
             const userData = childSnapshot.val();
             const userKey = childSnapshot.key;
-            if (userData.location && userData.isOnline) {
+            if (userData.location && userData.isOnline === true) {
                 addUserMarker(userData.location, userData.color, userKey, userData.label);
             } else {
                 removeUserMarker(userKey);
@@ -541,8 +541,11 @@ document.addEventListener("DOMContentLoaded", () => {
             console.log("✅ Đăng nhập thành công!");
             userId = username;
             userColor = userData.color;
+
             localStorage.setItem("userId", userId);
             localStorage.setItem("userColor", userColor);
+            // set isOnline to true
+            database.ref(`users/${userId}/isOnline`).set(true);
 
             navigator.geolocation.getCurrentPosition(
                 (position) => {
@@ -580,6 +583,8 @@ document.addEventListener("DOMContentLoaded", () => {
     window.addEventListener("beforeunload", () => {
         if (userId) {
             database.ref(`users/${userId}`).update({ isOnline: false });
+    localStorage.clear();
+
         }
     });
 
@@ -594,3 +599,5 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
     document.head.appendChild(style);
 });
+
+
