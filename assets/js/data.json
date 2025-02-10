@@ -29,6 +29,11 @@
         "username": "10km-nu",
         "password": "10kmnu",
         "color": "#E74C3C"
+      },
+      "admin": {
+        "username": "admin",
+        "password": "admin",
+        "color": "#000000"
       }
     }
   }

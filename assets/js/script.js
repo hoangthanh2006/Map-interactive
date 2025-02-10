@@ -327,6 +327,7 @@ const firebaseConfig = {
 
   // Kết nối Firebase
 const database = firebase.database();
+
 document.addEventListener("DOMContentLoaded", () => {
     const loginContainer = document.getElementById("login-container");
     const loginForm = document.getElementById("login-form");
@@ -335,32 +336,99 @@ document.addEventListener("DOMContentLoaded", () => {
     const errorMessage = document.getElementById("error-message");
     const togglePassword = document.querySelector(".toggle-password");
 
-    // Kiểm tra localStorage để tự động đăng nhập
     const userId = localStorage.getItem("userId");
     const userColor = localStorage.getItem("userColor");
     const userLocation = localStorage.getItem("userLocation");
 
+    let userMarkers = {}; // Lưu tất cả marker của user
+
+    // Hàm hiển thị tất cả marker của user trên map
+    function loadAllUsers() {
+        database.ref("users").on("value", (snapshot) => {
+            snapshot.forEach((childSnapshot) => {
+                const userData = childSnapshot.val();
+                const userKey = childSnapshot.key;
+                const userMarkerColor = userData.color;
+                const userMarkerLocation = userData.location;
+
+                if (userMarkerLocation) {
+                    addUserMarker(userMarkerLocation, userMarkerColor, userKey);
+                }
+            });
+        });
+    }
+
     if (userId && userColor) {
-        console.log(`✅ Đã đăng nhập: ${userId}`);
+        if (userId !== "admin") {
+            const adminContainer = document.getElementById("admin");
+            if (adminContainer) {
+                adminContainer.style.display = "none";
+            }
+        }
+
         loginContainer.style.display = "none";
 
-        // Nếu đã lưu vị trí, hiển thị lại marker
         if (userLocation) {
             const parsedLocation = JSON.parse(userLocation);
-            addUserMarker(parsedLocation, userColor);
+            addUserMarker(parsedLocation, userColor, userId);
+        }
+
+        loadAllUsers(); // Hiển thị tất cả user khi đăng nhập
+
+        setInterval(() => {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const userLocation = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    };
+
+                    database.ref(`users/${userId}`).update({ location: userLocation });
+
+                    localStorage.setItem("userLocation", JSON.stringify(userLocation));
+
+                    addUserMarker(userLocation, userColor, userId);
+                },
+                (error) => {
+                    console.error("⚠ Lỗi lấy vị trí:", error);
+                }
+            );
+        }, 3000);
+    }
+
+    // Hàm tạo/di chuyển marker + nhấp nháy
+    function addUserMarker(location, color, userKey) {
+        if (userMarkers[userKey]) {
+            userMarkers[userKey].setLngLat([location.lng, location.lat]);
+        } else {
+            const markerElement = document.createElement("div");
+            markerElement.className = "user-marker blink";
+            markerElement.style.backgroundColor = color;
+            markerElement.style.width = "20px";
+            markerElement.style.height = "20px";
+            markerElement.style.borderRadius = "50%";
+            markerElement.style.border = "2px solid white";
+
+            userMarkers[userKey] = new mapboxgl.Marker(markerElement)
+                .setLngLat([location.lng, location.lat])
+                .addTo(map);
         }
     }
 
-    // Xử lý ẩn/hiện mật khẩu
-    togglePassword.addEventListener("click", () => {
-        if (passwordInput.type === "password") {
-            passwordInput.type = "text";
-            togglePassword.innerText = "🙈";
-        } else {
-            passwordInput.type = "password";
-            togglePassword.innerText = "👁️";
+    // CSS hiệu ứng nhấp nháy
+    const style = document.createElement("style");
+    style.innerHTML = `
+        .blink {
+            animation: blink-animation 1s infinite;
         }
-    });
+        
+        @keyframes blink-animation {
+            0% { opacity: 1; }
+            50% { opacity: 0.2; }
+            100% { opacity: 1; }
+        }
+    `;
+    document.head.appendChild(style);
 
     // Xử lý đăng nhập
     loginForm.addEventListener("submit", (event) => {
@@ -374,12 +442,11 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        // Gọi hàm đăng nhập với Firebase
         loginUser(username, password);
     });
 });
 
-// Hàm đăng nhập với Firebase
+// Hàm đăng nhập
 function loginUser(username, password) {
     database.ref(`users/${username}`).once("value", (snapshot) => {
         const userData = snapshot.val();
@@ -393,12 +460,10 @@ function loginUser(username, password) {
         console.log("✅ Đăng nhập thành công!");
         document.getElementById("login-container").style.display = "none";
 
-        // Lưu thông tin user vào localStorage
         localStorage.setItem("userId", username);
         localStorage.setItem("userColor", userData.color);
         localStorage.setItem("userLocation", JSON.stringify(userData.location));
 
-        // Lấy vị trí user
         navigator.geolocation.getCurrentPosition((position) => {
             const userLocation = {
                 lat: position.coords.latitude,
@@ -407,33 +472,14 @@ function loginUser(username, password) {
 
             console.log("📍 Vị trí user:", userLocation);
 
-            // Cập nhật vị trí user vào Firebase
             database.ref(`users/${username}`).update({ location: userLocation });
 
-            // Lưu vị trí vào localStorage để dùng lại sau khi F5
             localStorage.setItem("userLocation", JSON.stringify(userLocation));
 
-            // Hiển thị marker
-            addUserMarker(userLocation, userData.color);
-
+            addUserMarker(userLocation, userData.color, username);
         }, (error) => {
             console.error("⚠ Lỗi lấy vị trí:", error);
             alert("⚠ Không thể lấy vị trí của bạn!");
         });
     });
-}
-
-// Hàm hiển thị marker trên bản đồ
-function addUserMarker(location, color) {
-    const markerElement = document.createElement("div");
-    markerElement.className = "user-marker";
-    markerElement.style.backgroundColor = color;
-    markerElement.style.width = "20px";
-    markerElement.style.height = "20px";
-    markerElement.style.borderRadius = "50%";
-    markerElement.style.border = "2px solid white";
-
-    new mapboxgl.Marker(markerElement)
-        .setLngLat([location.lng, location.lat])
-        .addTo(map);
 }
