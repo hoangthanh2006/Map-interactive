@@ -439,12 +439,12 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // // ❌ Chỉ ngắt kết nối khi user thực sự thoát hoặc F5
-    // window.addEventListener("beforeunload", () => {
-    //     if (userId) {
-    //         database.ref(`users/${userId}`).update({ isOnline: false });
-    //     }
-    // });
+    // ❌ Chỉ ngắt kết nối khi user thực sự thoát hoặc F5
+    window.addEventListener("beforeunload", () => {
+        if (userId) {
+            database.ref(`users/${userId}`).update({ isOnline: false });
+        }
+    });
 
     if (userId) {
         if (userId !== "admin") {
