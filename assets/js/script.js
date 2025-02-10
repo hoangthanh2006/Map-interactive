@@ -368,24 +368,18 @@ document.addEventListener("DOMContentLoaded", () => {
     setInterval(updateUserLocation, 3000); // Giảm tần suất cập nhật xuống mỗi 3 giây
   }
 
-  loadOnlineUsers();
+  loadAllUsers();
 
-  function loadOnlineUsers() {
+  function loadAllUsers() {
     database.ref("users").on("value", (snapshot) => {
-        snapshot.forEach((childSnapshot) => {
-            const userData = childSnapshot.val();
-            const userId = childSnapshot.key;
-            const userColor = userData.color;
-            const userLocation = userData.location;
-            console.log(userData.isOnline)
-            // 🔥 Chỉ hiển thị user nếu `isOnline: true`
-            if (userLocation && userData.isOnline) {
-                addUserMarker(userLocation, userColor, userId);
-            }
-        });
-    });
-}
+      snapshot.forEach((childSnapshot) => {
+        const { color, location } = childSnapshot.val();
+        const userKey = childSnapshot.key;
 
+        if (location) addUserMarker(location, color, userKey);
+      });
+    });
+  }
   function updateUserLocation() {
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -472,7 +466,6 @@ function loginUser(username, password) {
     database.ref(`users/${username}`).once("value", (snapshot) => {
         const userData = snapshot.val();
 
-
         if (!userData || userData.password !== password) {
             console.log("❌ Sai tên đăng nhập hoặc mật khẩu!");
             document.getElementById("error-message").innerText = "⚠ Tài khoản hoặc mật khẩu không đúng!";
@@ -510,22 +503,6 @@ function loginUser(username, password) {
         );
 
         loadOnlineUsers(); // Hiển thị tất cả user đang online
-
-  function loadOnlineUsers() {
-    database.ref("users").on("value", (snapshot) => {
-        snapshot.forEach((childSnapshot) => {
-            const userData = childSnapshot.val();
-            const userId = childSnapshot.key;
-            const userColor = userData.color;
-            const userLocation = userData.location;
-            console.log(userData.isOnline)
-            // 🔥 Chỉ hiển thị user nếu `isOnline: true`
-            if (userLocation && userData.isOnline) {
-                addUserMarker(userLocation, userColor, userId);
-            }
-        });
-    });
-}
     });
 }
 
