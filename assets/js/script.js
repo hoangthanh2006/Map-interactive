@@ -538,6 +538,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
+            // Ân admin tool nếu user không phải admin
+            if (username !== "admin") {
+                const adminTools = document.getElementById("admin");
+                adminTools.style.display = "none";
+            }
+
             console.log("✅ Đăng nhập thành công!");
             userId = username;
             userColor = userData.color;
