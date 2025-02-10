@@ -412,59 +412,6 @@ const firebaseConfig = {
   // Kết nối Firebase
 const database = firebase.database();
 
-// 🟢 Kiểm tra `userId` từ localStorage
-let userId = localStorage.getItem("userId");
-
-if (!userId) {
-    database.ref("users").once("value", (snapshot) => {
-        const users = snapshot.val();
-        let existingUserId = null;
-
-        // Duyệt danh sách users để tìm ID đã tồn tại với cùng thiết bị
-        for (const id in users) {
-            if (users[id].deviceInfo === navigator.userAgent) {
-                existingUserId = id;
-                break;
-            }
-        }
-
-        if (existingUserId) {
-            // Nếu tìm thấy userId cũ -> Sử dụng lại
-            userId = existingUserId;
-            localStorage.setItem("userId", userId);
-        } else {
-            // Nếu không tìm thấy userId -> Tạo mới
-            userId = "device_" + Math.random().toString(36).substr(2, 9);
-            localStorage.setItem("userId", userId);
-            createUserInDatabase();
-        }
-    });
-} else {
-    // Nếu userId đã có -> Kiểm tra trên Firebase
-    database.ref(`users/${userId}`).once("value", (snapshot) => {
-        if (!snapshot.exists()) {
-            createUserInDatabase(); // Nếu chưa có trong Firebase, tạo mới
-        }
-    });
-}
-
-// 🟢 Tạo dữ liệu người dùng trong Firebase (Lưu luôn màu vào user)
-function createUserInDatabase() {
-    database.ref(`users/${userId}`).once("value", (snapshot) => {
-        let userColor = snapshot.val()?.color || getRandomColor(); // Lấy màu cũ nếu có
-
-        const userData = {
-            lat: 0,
-            lng: 0,
-            color: userColor, // Lưu màu trực tiếp vào user
-            uid: userId,
-            timestamp: Date.now(),
-            deviceInfo: navigator.userAgent // Lưu thông tin thiết bị
-        };
-
-        database.ref(`users/${userId}`).set(userData);
-    });
-}
 
 // 🟢 Cập nhật vị trí người dùng (Không thay đổi màu)
 function updateUserLocation(position) {

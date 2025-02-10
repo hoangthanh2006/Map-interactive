@@ -73,7 +73,9 @@
 .mapboxgl-marker {
     transform: translate(-50%, -50%);
 }
-
+.pusle-adnimation{
+    animation: pulse 1s infinite;
+}
 @keyframes pulse {
     0% {
         transform: scale(1);
