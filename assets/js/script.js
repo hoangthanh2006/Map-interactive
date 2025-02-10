@@ -362,17 +362,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const userColor = localStorage.getItem("userColor");
     const userLocation = localStorage.getItem("userLocation");
 
-    // Hàm hiển thị tất cả marker của user trên map
-    function loadAllUsers() {
-        database.ref("users").on("value", (snapshot) => {
-            snapshot.forEach((childSnapshot) => {
-                const { color, location } = childSnapshot.val();
-                const userKey = childSnapshot.key;
-
-                if (location) addUserMarker(location, color, userKey);
-            });
-        });
-    }
+ 
 
     if (userId && userColor) {
         if (userId !== "admin") {
@@ -394,7 +384,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
 
-        loadAllUsers(); // Hiển thị tất cả user khi đăng nhập
+       
 
         setInterval(updateUserLocation, 3000); // Giảm tần suất cập nhật xuống mỗi 3 giây
     }
@@ -514,7 +504,19 @@ function loginUser(username, password) {
                 alert("⚠ Không thể lấy vị trí của bạn!");
             }
         );
+           // Hàm hiển thị tất cả marker của user trên map
+    function loadAllUsers() {
+        database.ref("users").on("value", (snapshot) => {
+            snapshot.forEach((childSnapshot) => {
+                const { color, location } = childSnapshot.val();
+                const userKey = childSnapshot.key;
+
+                if (location) addUserMarker(location, color, userKey);
+            });
+        });
+    }
     });
+    loadAllUsers(); // Hiển thị tất cả user khi đăng nhập
 }
 
 // Xóa thông tin trên localStorage khi user đóng trình duyệt
