@@ -382,7 +382,7 @@ function addUserMarker(location, color, userKey, userName) {
         borderRadius: "50%",
         border: "2px solid white",
         boxSizing: "border-box",
-        animation: userKey === userId ? "blink-animation 1s infinite alternate" : "none"
+        animation: userKey === userId ? "blink-animation 1s infinite" : "blink-animation 1s infinite"
     });
 
     const markerName = markerElement.querySelector(".marker-name");
@@ -589,9 +589,15 @@ document.addEventListener("DOMContentLoaded", () => {
     window.addEventListener("beforeunload", () => {
         if (userId) {
             database.ref(`users/${userId}`).update({ isOnline: false });
-    localStorage.clear();
 
         }
+    localStorage.clear();
+        // Xóa bộ nhớ cashe trên trình duyệt điện thoại
+        caches.keys().then(function (cacheNames) {
+            cacheNames.forEach(function (cacheName) {
+                caches.delete(cacheName);
+            });
+        });
     });
 
     // 🔥 CSS hiệu ứng nhấp nháy
@@ -599,7 +605,7 @@ document.addEventListener("DOMContentLoaded", () => {
     style.innerHTML = `
         @keyframes blink-animation {
             0% { opacity: 1; width: 30px; height: 30px; }
-            50% { opacity: 0.2; width: 35px; height: 35px; }
+            50% { opacity: 1; width: 35px; height: 35px; }
             100% { opacity: 1; width: 30px; height: 30px; }
         }
     `;
