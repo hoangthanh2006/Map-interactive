@@ -422,6 +422,30 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    // Đảm bảo user ngắt kết nối nếu tắt trình duyệt
+    if (userId) {
+        // 👉 Khi user kết nối, set isOnline = true
+        database.ref(`users/${userId}`).update({ isOnline: true });
+
+        // 👉 Đảm bảo khi mất kết nối, Firebase tự động cập nhật isOnline = false
+        database.ref(`users/${userId}/isOnline`).onDisconnect().set(false);
+    }
+
+    // 🔥 Không ngắt kết nối khi user chỉ tắt màn hình hoặc chuyển tab
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible" && userId) {
+            // Khi user quay lại, set lại isOnline = true
+            database.ref(`users/${userId}`).update({ isOnline: true });
+        }
+    });
+
+    // // ❌ Chỉ ngắt kết nối khi user thực sự thoát hoặc F5
+    // window.addEventListener("beforeunload", () => {
+    //     if (userId) {
+    //         database.ref(`users/${userId}`).update({ isOnline: false });
+    //     }
+    // });
+
     if (userId) {
         if (userId !== "admin") {
             document.getElementById("admin")?.style.setProperty("display", "none");

@@ -174,3 +174,19 @@ button:hover {
 #admin {
   display: none;
 }
+
+.marker-name::after {
+  content: '';
+  /* tạo hình mũi tên hướng xuống  */
+  position: absolute;
+  top: 120%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 10px solid rgba(0, 0, 0, 0.7);
+  z-index: 99;
+
+}
