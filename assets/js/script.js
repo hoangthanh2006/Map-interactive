@@ -432,38 +432,59 @@ function loadOnlineUsers() {
 function trackUserLocation() {
     if (!userId) return;
 
+    let lastPosition = null;
+
     navigator.geolocation.watchPosition(
         (position) => {
-            const userLocation = {
+            const newLocation = {
                 lat: position.coords.latitude,
                 lng: position.coords.longitude
             };
 
-            database.ref(`users/${userId}`).update({ location: userLocation });
-            addUserMarker(userLocation, userColor, userId, userId);
+            // Cập nhật Firebase
+            database.ref(`users/${userId}`).update({ location: newLocation });
 
+            // Di chuyển marker mượt mà
+            smoothMoveMarker(userId, newLocation);
+
+            // Nếu không tương tác, di chuyển về vị trí user (trừ admin)
             if (!isUserInteracting && userId !== "admin") {
                 map.easeTo({
-                    center: [userLocation.lng, userLocation.lat],
+                    center: [newLocation.lng, newLocation.lat],
                     zoom: 15,
                     duration: 1000
                 });
             }
-            map.flyTo({
-                center: [userLocation.lng, userLocation.lat],
-                zoom: 15,
-                speed: 0.5, // Điều chỉnh tốc độ di chuyển
-            });
         },
         (error) => console.error("⚠ Lỗi lấy vị trí:", error),
-        { enableHighAccuracy: true, maximumAge: 0, timeout: 300 }
-
-        
+        { enableHighAccuracy: true, maximumAge: 100, timeout: 500 }
     );
-  
-
-    
 }
+
+// 🟢 Hàm di chuyển marker mượt mà với Lerp
+function smoothMoveMarker(userKey, newLocation) {
+    if (!userMarkers[userKey]) return;
+
+    const marker = userMarkers[userKey];
+    const start = marker.getLngLat();
+    const end = newLocation;
+    let progress = 0;
+
+    function animate() {
+        if (progress < 1) {
+            progress += 0.1; // Điều chỉnh tốc độ mượt (giá trị nhỏ hơn = chậm hơn)
+            const interpolatedLng = start.lng + (end.lng - start.lng) * progress;
+            const interpolatedLat = start.lat + (end.lat - start.lat) * progress;
+            marker.setLngLat([interpolatedLng, interpolatedLat]);
+            requestAnimationFrame(animate);
+        } else {
+            marker.setLngLat([end.lng, end.lat]);
+        }
+    }
+
+    requestAnimationFrame(animate);
+}
+
 
 // 🎯 Xử lý tương tác bản đồ
 map.on("movestart", () => isUserInteracting = true);
