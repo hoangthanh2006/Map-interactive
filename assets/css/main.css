@@ -165,9 +165,12 @@ button:hover {
     height: 30px;
     border-radius: 50%;
     background-color: #e5ff00;
-    animation: pulse 1s infinite;
+    animation: pulse 1s infinite ;
     position: absolute;
     top: 100%;
     left: 0%;
     z-index: 99;
+}
+#admin {
+  display: none;
 }

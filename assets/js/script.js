@@ -327,6 +327,29 @@ const firebaseConfig = {
 
   // Kết nối Firebase
 const database = firebase.database();
+let userMarkers = {}; // Lưu tất cả marker của user
+
+// Hàm tạo/di chuyển marker + hiệu ứng nhấp nháy
+function addUserMarker(location, color, userKey) {
+    if (userMarkers[userKey]) {
+        userMarkers[userKey].setLngLat([location.lng, location.lat]);
+    } else {
+        const markerElement = document.createElement("div");
+        markerElement.className = "user-marker blink";
+        Object.assign(markerElement.style, {
+            backgroundColor: color,
+            width: "30px",
+            height: "30px",
+            borderRadius: "50%",
+            border: "2px solid white",
+            boxSizing: "border-box"
+        });
+
+        userMarkers[userKey] = new mapboxgl.Marker(markerElement)
+            .setLngLat([location.lng, location.lat])
+            .addTo(map);
+    }
+}
 
 document.addEventListener("DOMContentLoaded", () => {
     const loginContainer = document.getElementById("login-container");
@@ -334,36 +357,26 @@ document.addEventListener("DOMContentLoaded", () => {
     const usernameInput = document.getElementById("username");
     const passwordInput = document.getElementById("password");
     const errorMessage = document.getElementById("error-message");
-    const togglePassword = document.querySelector(".toggle-password");
 
     const userId = localStorage.getItem("userId");
     const userColor = localStorage.getItem("userColor");
     const userLocation = localStorage.getItem("userLocation");
 
-    let userMarkers = {}; // Lưu tất cả marker của user
-
     // Hàm hiển thị tất cả marker của user trên map
     function loadAllUsers() {
         database.ref("users").on("value", (snapshot) => {
             snapshot.forEach((childSnapshot) => {
-                const userData = childSnapshot.val();
+                const { color, location } = childSnapshot.val();
                 const userKey = childSnapshot.key;
-                const userMarkerColor = userData.color;
-                const userMarkerLocation = userData.location;
 
-                if (userMarkerLocation) {
-                    addUserMarker(userMarkerLocation, userMarkerColor, userKey);
-                }
+                if (location) addUserMarker(location, color, userKey);
             });
         });
     }
 
     if (userId && userColor) {
         if (userId !== "admin") {
-            const adminContainer = document.getElementById("admin");
-            if (adminContainer) {
-                adminContainer.style.display = "none";
-            }
+            document.getElementById("admin")?.style.setProperty("display", "none");
         }
 
         loginContainer.style.display = "none";
@@ -371,49 +384,35 @@ document.addEventListener("DOMContentLoaded", () => {
         if (userLocation) {
             const parsedLocation = JSON.parse(userLocation);
             addUserMarker(parsedLocation, userColor, userId);
+
+            if (userId !== "admin") {
+                map.easeTo({
+                    zoom: 15,
+                    center: [parsedLocation.lng, parsedLocation.lat],
+                    duration: 500
+                });
+            }
         }
 
         loadAllUsers(); // Hiển thị tất cả user khi đăng nhập
 
-        setInterval(() => {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    const userLocation = {
-                        lat: position.coords.latitude,
-                        lng: position.coords.longitude
-                    };
-
-                    database.ref(`users/${userId}`).update({ location: userLocation });
-
-                    localStorage.setItem("userLocation", JSON.stringify(userLocation));
-
-                    addUserMarker(userLocation, userColor, userId);
-                },
-                (error) => {
-                    console.error("⚠ Lỗi lấy vị trí:", error);
-                }
-            );
-        }, 500);
+        setInterval(updateUserLocation, 3000); // Giảm tần suất cập nhật xuống mỗi 3 giây
     }
 
-    // Hàm tạo/di chuyển marker + nhấp nháy
-    function addUserMarker(location, color, userKey) {
-        if (userMarkers[userKey]) {
-            userMarkers[userKey].setLngLat([location.lng, location.lat]);
-        } else {
-            const markerElement = document.createElement("div");
-            markerElement.className = "user-marker blink";
-            markerElement.style.backgroundColor = color;
-            markerElement.style.width = "30px";
-            markerElement.style.height = "30px";
-            markerElement.style.boxSizing = "border-box";
-            markerElement.style.borderRadius = "50%";
-            markerElement.style.border = "2px solid white";
+    function updateUserLocation() {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const userLocation = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                };
 
-            userMarkers[userKey] = new mapboxgl.Marker(markerElement)
-                .setLngLat([location.lng, location.lat])
-                .addTo(map);
-        }
+                database.ref(`users/${userId}`).update({ location: userLocation });
+                localStorage.setItem("userLocation", JSON.stringify(userLocation));
+                addUserMarker(userLocation, userColor, userId);
+            },
+            (error) => console.error("⚠ Lỗi lấy vị trí:", error)
+        );
     }
 
     // CSS hiệu ứng nhấp nháy
@@ -422,12 +421,9 @@ document.addEventListener("DOMContentLoaded", () => {
         .blink {
             animation: blink-animation 1s alternate infinite;
         }
-        
         @keyframes blink-animation {
             0% { opacity: 1; width: 30px; height: 30px; }
             50% { opacity: 0.2; width: 35px; height: 35px; }
-
-         
             100% { opacity: 1; width: 30px; height: 30px; }
         }
     `;
@@ -436,7 +432,6 @@ document.addEventListener("DOMContentLoaded", () => {
     // Xử lý đăng nhập
     loginForm.addEventListener("submit", (event) => {
         event.preventDefault();
-        
         const username = usernameInput.value.trim();
         const password = passwordInput.value.trim();
 
@@ -447,6 +442,39 @@ document.addEventListener("DOMContentLoaded", () => {
 
         loginUser(username, password);
     });
+    let isUserInteracting = false; // Kiểm tra người dùng có thao tác bản đồ không
+
+map.on("movestart", () => { isUserInteracting = true; }); // Khi bắt đầu di chuyển, tắt tự động focus
+map.on("moveend", () => { 
+    setTimeout(() => { isUserInteracting = false; }, 5000); // Sau 5s không thao tác sẽ tự quay về user
+});
+
+function updateUserLocation() {
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            const userLocation = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude
+            };
+
+            database.ref(`users/${userId}`).update({ location: userLocation });
+            localStorage.setItem("userLocation", JSON.stringify(userLocation));
+            addUserMarker(userLocation, userColor, userId);
+
+            // 🔥 Chỉ cập nhật vị trí nếu người dùng KHÔNG thao tác bản đồ ngoại trừ người dùng là admin
+
+            if (!isUserInteracting && userId !== "admin") {
+                map.easeTo({
+                    zoom: 15,
+                    center: [userLocation.lng, userLocation.lat],
+                    duration: 500
+                });
+            }
+        },
+        (error) => console.error("⚠ Lỗi lấy vị trí:", error)
+    );
+}
+
 });
 
 // Hàm đăng nhập
@@ -467,22 +495,31 @@ function loginUser(username, password) {
         localStorage.setItem("userColor", userData.color);
         localStorage.setItem("userLocation", JSON.stringify(userData.location));
 
-        navigator.geolocation.getCurrentPosition((position) => {
-            const userLocation = {
-                lat: position.coords.latitude,
-                lng: position.coords.longitude
-            };
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const userLocation = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                };
 
-            console.log("📍 Vị trí user:", userLocation);
+                console.log("📍 Vị trí user:", userLocation);
 
-            database.ref(`users/${username}`).update({ location: userLocation });
+                database.ref(`users/${username}`).update({ location: userLocation });
 
-            localStorage.setItem("userLocation", JSON.stringify(userLocation));
-
-            addUserMarker(userLocation, userData.color, username);
-        }, (error) => {
-            console.error("⚠ Lỗi lấy vị trí:", error);
-            alert("⚠ Không thể lấy vị trí của bạn!");
-        });
+                localStorage.setItem("userLocation", JSON.stringify(userLocation));
+                addUserMarker(userLocation, userData.color, username);
+            },
+            (error) => {
+                console.error("⚠ Lỗi lấy vị trí:", error);
+                alert("⚠ Không thể lấy vị trí của bạn!");
+            }
+        );
     });
 }
+
+// Xóa thông tin trên localStorage khi user đóng trình duyệt
+window.addEventListener("beforeunload", () => {
+    localStorage.removeItem("userId");
+    localStorage.removeItem("userColor");
+    localStorage.removeItem("userLocation");
+});
