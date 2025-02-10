@@ -322,25 +322,53 @@ database.ref("users").on("child_removed", (snapshot) => {
 // Hàm tạo/di chuyển marker + hiệu ứng nhấp nháy
 function addUserMarker(location, color, userKey) {
     if (userMarkers[userKey]) {
-        userMarkers[userKey].setLngLat([location.lng, location.lat]);
-        return;
+        userMarkers[userKey].remove();
     }
 
-    const markerElement = document.createElement("div");
-    markerElement.className = "user-marker blink";
-    Object.assign(markerElement.style, {
-      backgroundColor: color,
-      width: "30px",
-      height: "30px",
-      borderRadius: "50%",
-      border: "2px solid white",
-      boxSizing: "border-box",
-    });
+    // Lấy tên user từ Firebase (lấy đúng user theo `userKey`)
+    database.ref(`users/${userKey}`).once("value", (snapshot) => {
+        const userData = snapshot.val();
+        const userName = userData ? userData.label : "Unknown"; // Lấy tên user, nếu không có thì hiển thị "Unknown"
 
-    userMarkers[userKey] = new mapboxgl.Marker(markerElement)
-      .setLngLat([location.lng, location.lat])
-      .addTo(map);
+        // Tạo phần tử HTML cho marker
+        const markerElement = document.createElement("div");
+        markerElement.className = "user-marker";
+        markerElement.innerHTML = `<span class="marker-name">${userName}</span>`;
+
+        // Thiết lập CSS cho marker
+        Object.assign(markerElement.style, {
+            position: "relative",
+            backgroundColor: color,
+            width: "30px",
+            height: "30px",
+            borderRadius: "50%",
+            border: "2px solid white",
+            boxSizing: "border-box"
+        });
+
+        // Thêm style cho tên user
+        const markerName = markerElement.querySelector(".marker-name");
+        Object.assign(markerName.style, {
+            position: "absolute",
+            top: "-40px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            backgroundColor: "rgba(0, 0, 0, 0.7)",
+            color: "white",
+            padding: "3px 6px",
+            borderRadius: "5px",
+            fontSize: "12px",
+            whiteSpace: "nowrap"
+        });
+
+        // Tạo marker với element tùy chỉnh
+        userMarkers[userKey] = new mapboxgl.Marker(markerElement)
+            .setLngLat([location.lng, location.lat])
+            .addTo(map);
+    });
 }
+
+
 
 function removeUserMarker(userKey) {
     if (userMarkers[userKey]) {
