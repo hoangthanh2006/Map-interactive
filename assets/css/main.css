@@ -132,7 +132,7 @@ input {
 }
 
 /* Nút đăng nhập */
-button {
+.dangnhap {
   width: 100%;
   padding: 10px;
   background: #667eea;
@@ -171,9 +171,7 @@ button:hover {
     left: 0%;
     z-index: 99;
 }
-#admin {
-  display: none;
-}
+
 
 .marker-name::after {
   content: '';
@@ -189,4 +187,10 @@ button:hover {
   border-top: 10px solid rgba(0, 0, 0, 0.7);
   z-index: 99;
 
+}
+
+#draw-line {
+  stroke: white !important;
+  stroke-width: 3px !important;
+  fill: aliceblue !important;
 }

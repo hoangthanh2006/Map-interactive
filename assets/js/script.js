@@ -35,6 +35,8 @@ const geocoder = new MapboxGeocoder({
   mapboxgl: mapboxgl,
 });
 
+
+
 // var rotateButton = document.getElementById('rotate');
 let rotating = false;
 const rotateButton = document.getElementById("rotate");
@@ -61,8 +63,8 @@ rotateRightButton.addEventListener("click", () => {
   }
 });
 
-// Fly-in
-const zoomInButton = document.getElementById("zoom-in");
+// Fly-in-left
+const zoomInButton = document.getElementById("zoom-in-left");
 let zoomInterval = null; // Biến để kiểm soát trạng thái interval
 
 zoomInButton.addEventListener("click", () => {
@@ -80,9 +82,9 @@ zoomInButton.addEventListener("click", () => {
       }
 
       map.easeTo({
-        zoom: currentZoom + 0.01, // Tăng zoom in
+        zoom: currentZoom + 0.005, // Tăng zoom in
         pitch: Math.max(0, currentPitch - 0.01), // Giảm pitch để nhìn ngang dần
-        bearing: currentBearing + 0.2, // Xoay nhẹ camera
+        bearing: currentBearing + 0.1, // Xoay nhẹ camera
         duration: 50, // Mượt hơn
       });
     }, 100);
@@ -91,6 +93,39 @@ zoomInButton.addEventListener("click", () => {
     zoomInterval = null;
   }
 });
+
+// Fly-in-right
+const zoomInRightButton = document.getElementById("zoom-in-right");
+let zoomInRightInterval = null; // Biến để kiểm soát trạng thái interval
+
+zoomInRightButton.addEventListener
+  ("click", () => {
+    if (!zoomInRightInterval) {
+      zoomInRightInterval = setInterval(() => {
+        const currentZoom = map.getZoom();
+        const currentPitch = map.getPitch();
+        const currentBearing = map.getBearing();
+
+        if (currentZoom >= 18) {
+          // Dừng khi zoom đạt giới hạn mong muốn
+          clearInterval(zoomInRightInterval);
+          zoomInRightInterval = null;
+          return;
+        }
+
+        map.easeTo({
+          zoom: currentZoom + 0.005, // Tăng zoom in
+          pitch: Math.max(0, currentPitch - 0.01), // Giảm pitch để nhìn ngang dần
+          bearing: currentBearing - 0.2, // Xoay nhẹ camera
+          duration: 50, // Mượt hơn
+        });
+      }, 100);
+    } else {
+      clearInterval(zoomInRightInterval);
+      zoomInRightInterval = null;
+    }
+  });
+
 
 // Fly-out
 const zoomOutButton = document.getElementById("zoom-out");
@@ -212,7 +247,7 @@ const drawing = new MapboxDraw({
       type: "fill",
       filter: ["all", ["==", "$type", "Polygon"]],
       paint: {
-        "fill-color": "#000000",
+        "fill-color": "#fff",
         "fill-opacity": 0.5,
       },
       layout: {
@@ -224,9 +259,16 @@ const drawing = new MapboxDraw({
       type: "line",
       filter: ["all", ["==", "$type", "LineString"]],
       paint: {
-        "line-color": "#EBAA3D",
-        "line-width": 10,
-        "fill-color": "#EBAA3D",
+        "line-color": "#ff0000",
+        "line-width": 20,
+        "fill-color": "#EFF739 ",
+        "fill-opacity": 1,
+        "line-opacity": 1,
+        "line-blur": 0,
+      
+     
+
+
       },
       layout: {
         visibility: "visible",
@@ -241,7 +283,7 @@ const drawing = new MapboxDraw({
       filter: ["all", ["==", "$type", "Point"]],
       paint: {
         "circle-radius": 5,
-        "circle-color": "#EB533D",
+        "circle-color": "#fff",
       },
       layout: {
         visibility: "visible",
@@ -252,7 +294,7 @@ const drawing = new MapboxDraw({
       type: "symbol",
       filter: ["all", ["==", "$type", "Point"]],
       paint: {
-        "icon-color": "#000000",
+        "icon-color": "#fff",
         "icon-size": 1.5,
       },
       layout: {
@@ -264,7 +306,7 @@ const drawing = new MapboxDraw({
       type: "symbol",
       filter: ["all", ["==", "$type", "Point"]],
       paint: {
-        "icon-color": "#000000",
+        "icon-color": "#fff",
         "icon-size": 2,
       },
       layout: {
@@ -276,15 +318,13 @@ const drawing = new MapboxDraw({
       type: "symbol",
       filter: ["all", ["==", "$type", "Point"]],
       paint: {
-        "icon-color": "#000000",
+        "icon-color": "#fff",
         "icon-size": 2.5,
       },
       layout: {
         visibility: "visible",
       },
-      layout: {
-        visibility: "visible",
-      },
+      
     },
   ],
 });
@@ -312,82 +352,75 @@ firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 
 
-let userMarkers = {}; // Lưu tất cả marker của user
 
-database.ref("users").on("child_removed", (snapshot) => {
-    const userKey = snapshot.key;
-    removeUserMarker(userKey);
-});
+// 📌 Biến toàn cục
+let userId = localStorage.getItem("userId");
+let userColor = localStorage.getItem("userColor");
+let userMarkers = {};
+let isUserInteracting = false;
 
-// Hàm tạo/di chuyển marker + hiệu ứng nhấp nháy
-function addUserMarker(location, color, userKey) {
+// 🟢 Hàm tạo/di chuyển marker + hiệu ứng nhấp nháy
+function addUserMarker(location, color, userKey, userName) {
+    if (!location) return;
+
+    // Xóa marker cũ nếu tồn tại
     if (userMarkers[userKey]) {
         userMarkers[userKey].remove();
     }
 
-    // Lấy tên user từ Firebase (lấy đúng user theo `userKey`)
-    database.ref(`users/${userKey}`).once("value", (snapshot) => {
-        const userData = snapshot.val();
-        const userName = userData ? userData.label : "Unknown"; // Lấy tên user, nếu không có thì hiển thị "Unknown"
+    // Tạo phần tử HTML cho marker
+    const markerElement = document.createElement("div");
+    markerElement.className = "user-marker";
+    markerElement.innerHTML = `<span class="marker-name">${userName}</span>`;
 
-        // Tạo phần tử HTML cho marker
-        const markerElement = document.createElement("div");
-        markerElement.className = "user-marker";
-        markerElement.innerHTML = `<span class="marker-name">${userName}</span>`;
-
-        // Thiết lập CSS cho marker
-        Object.assign(markerElement.style, {
-            position: "relative",
-            backgroundColor: color,
-            width: "30px",
-            height: "30px",
-            borderRadius: "50%",
-            border: "2px solid white",
-            boxSizing: "border-box"
-        });
-
-        // Thêm style cho tên user
-        const markerName = markerElement.querySelector(".marker-name");
-        Object.assign(markerName.style, {
-            position: "absolute",
-            top: "-40px",
-            left: "50%",
-            transform: "translateX(-50%)",
-            backgroundColor: "rgba(0, 0, 0, 0.7)",
-            color: "white",
-            padding: "3px 6px",
-            borderRadius: "5px",
-            fontSize: "12px",
-            whiteSpace: "nowrap"
-        });
-
-        // Tạo marker với element tùy chỉnh
-        userMarkers[userKey] = new mapboxgl.Marker(markerElement)
-            .setLngLat([location.lng, location.lat])
-            .addTo(map);
+    // Thiết lập CSS
+    Object.assign(markerElement.style, {
+        position: "relative",
+        backgroundColor: color,
+        width: "30px",
+        height: "30px",
+        borderRadius: "50%",
+        border: "2px solid white",
+        boxSizing: "border-box",
+        animation: userKey === userId ? "blink-animation 1s infinite alternate" : "none"
     });
+
+    const markerName = markerElement.querySelector(".marker-name");
+    Object.assign(markerName.style, {
+        position: "absolute",
+        top: "-40px",
+        left: "50%",
+        transform: "translateX(-50%)",
+        backgroundColor: "rgba(0, 0, 0, 0.7)",
+        color: "white",
+        padding: "3px 6px",
+        borderRadius: "5px",
+        fontSize: "12px",
+        whiteSpace: "nowrap"
+    });
+
+    // Tạo marker mới
+    userMarkers[userKey] = new mapboxgl.Marker(markerElement)
+        .setLngLat([location.lng, location.lat])
+        .addTo(map);
 }
 
-
-
+// 🟢 Hàm xóa marker khi user rời khỏi
 function removeUserMarker(userKey) {
     if (userMarkers[userKey]) {
-        userMarkers[userKey].remove(); // Xóa marker khỏi bản đồ
-        delete userMarkers[userKey]; // Xóa khỏi danh sách
+        userMarkers[userKey].remove();
+        delete userMarkers[userKey];
     }
 }
 
-// Cập nhật danh sách online users
+// 🟢 Load danh sách online users
 function loadOnlineUsers() {
     database.ref("users").on("value", (snapshot) => {
         snapshot.forEach((childSnapshot) => {
             const userData = childSnapshot.val();
             const userKey = childSnapshot.key;
-            const userColor = userData.color;
-            const userLocation = userData.location;
-
-            if (userLocation && userData.isOnline) {
-                addUserMarker(userLocation, userColor, userKey);
+            if (userData.location && userData.isOnline) {
+                addUserMarker(userData.location, userData.color, userKey, userData.label);
             } else {
                 removeUserMarker(userKey);
             }
@@ -395,6 +428,38 @@ function loadOnlineUsers() {
     });
 }
 
+// 🟢 Theo dõi vị trí user
+function trackUserLocation() {
+    if (!userId) return;
+
+    navigator.geolocation.watchPosition(
+        (position) => {
+            const userLocation = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude
+            };
+
+            database.ref(`users/${userId}`).update({ location: userLocation });
+            addUserMarker(userLocation, userColor, userId, userId);
+
+            if (!isUserInteracting && userId !== "admin") {
+                map.easeTo({
+                    center: [userLocation.lng, userLocation.lat],
+                    zoom: 15,
+                    duration: 1000
+                });
+            }
+        },
+        (error) => console.error("⚠ Lỗi lấy vị trí:", error),
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+    );
+}
+
+// 🎯 Xử lý tương tác bản đồ
+map.on("movestart", () => isUserInteracting = true);
+map.on("moveend", () => setTimeout(() => isUserInteracting = false, 5000));
+
+// 🏁 Xử lý đăng nhập
 document.addEventListener("DOMContentLoaded", () => {
     const loginContainer = document.getElementById("login-container");
     const loginForm = document.getElementById("login-form");
@@ -402,121 +467,23 @@ document.addEventListener("DOMContentLoaded", () => {
     const passwordInput = document.getElementById("password");
     const errorMessage = document.getElementById("error-message");
 
-    const userId = localStorage.getItem("userId");
-    const userColor = localStorage.getItem("userColor");
-    const userLocation = localStorage.getItem("userLocation");
-
-    if (userId && userColor && userLocation) {
-        const parsedLocation = JSON.parse(userLocation);
-        addUserMarker(parsedLocation, userColor, userId);
-    }
-
     if (userId) {
         database.ref(`users/${userId}/isOnline`).once("value", (snapshot) => {
-            if (snapshot.val() && userColor && userLocation) {
-                const parsedLocation = JSON.parse(userLocation);
-                addUserMarker(parsedLocation, userColor, userId);
-            } else {
-                localStorage.clear(); // Nếu user offline, xóa localStorage
+            if (!snapshot.val()) {
+                localStorage.clear();
+                userId = null;
+                return;
             }
+            loadOnlineUsers();
+            trackUserLocation();
         });
-    }
 
-    // Đảm bảo user ngắt kết nối nếu tắt trình duyệt
-    if (userId) {
-        // 👉 Khi user kết nối, set isOnline = true
         database.ref(`users/${userId}`).update({ isOnline: true });
-
-        // 👉 Đảm bảo khi mất kết nối, Firebase tự động cập nhật isOnline = false
         database.ref(`users/${userId}/isOnline`).onDisconnect().set(false);
-    }
-
-    // 🔥 Không ngắt kết nối khi user chỉ tắt màn hình hoặc chuyển tab
-    document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "visible" && userId) {
-            // Khi user quay lại, set lại isOnline = true
-            database.ref(`users/${userId}`).update({ isOnline: true });
-        }
-    });
-
-    // ❌ Chỉ ngắt kết nối khi user thực sự thoát hoặc F5
-    window.addEventListener("beforeunload", () => {
-        if (userId) {
-            database.ref(`users/${userId}`).update({ isOnline: false });
-        }
-    });
-
-    if (userId) {
-        if (userId !== "admin") {
-            document.getElementById("admin")?.style.setProperty("display", "none");
-        }
-
         loginContainer.style.display = "none";
-
-        if (userLocation) {
-            const parsedLocation = JSON.parse(userLocation);
-            if (userId !== "admin") {
-                map.easeTo({
-                    zoom: 15,
-                    center: [parsedLocation.lng, parsedLocation.lat],
-                    duration: 500,
-                });
-            }
-        }
-
-        setInterval(updateUserLocation, 3000);
     }
 
-    let isUserInteracting = false;
-
-    map.on("movestart", () => {
-        isUserInteracting = true;
-    });
-
-    map.on("moveend", () => {
-        setTimeout(() => {
-            isUserInteracting = false;
-        }, 5000);
-    });
-
-    function updateUserLocation() {
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const userLocation = {
-                    lat: position.coords.latitude,
-                    lng: position.coords.longitude,
-                };
-
-                database.ref(`users/${userId}`).update({ location: userLocation });
-
-                addUserMarker(userLocation, userColor, userId);
-
-                if (!isUserInteracting && userId !== "admin") {
-                    map.easeTo({
-                        zoom: 15,
-                        center: [userLocation.lng, userLocation.lat],
-                        duration: 500,
-                    });
-                }
-            },
-            (error) => console.error("⚠ Lỗi lấy vị trí:", error)
-        );
-    }
-
-    // CSS hiệu ứng nhấp nháy
-    const style = document.createElement("style");
-    style.innerHTML = `
-        .blink {
-            animation: blink-animation 1s alternate infinite;
-        }
-        @keyframes blink-animation {
-            0% { opacity: 1; width: 30px; height: 30px; }
-            50% { opacity: 0.2; width: 35px; height: 35px; }
-            100% { opacity: 1; width: 30px; height: 30px; }
-        }
-    `;
-    document.head.appendChild(style);
-
+    // 🏁 Xử lý đăng nhập
     loginForm.addEventListener("submit", (event) => {
         event.preventDefault();
         const username = usernameInput.value.trim();
@@ -529,55 +496,70 @@ document.addEventListener("DOMContentLoaded", () => {
 
         loginUser(username, password);
     });
-});
 
-// Hàm đăng nhập
-function loginUser(username, password) {
-    database.ref(`users/${username}`).once("value", (snapshot) => {
-        const userData = snapshot.val();
+    // 🟢 Hàm đăng nhập
+    function loginUser(username, password) {
+        database.ref(`users/${username}`).once("value", (snapshot) => {
+            const userData = snapshot.val();
 
-        if (!userData || userData.password !== password) {
-            document.getElementById("error-message").innerText = "⚠ Tài khoản hoặc mật khẩu không đúng!";
-            return;
-        }
-
-        console.log("✅ Đăng nhập thành công!");
-        document.getElementById("login-container").style.display = "none";
-
-        localStorage.setItem("userId", username);
-        localStorage.setItem("userColor", userData.color);
-
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const userLocation = {
-                    lat: position.coords.latitude,
-                    lng: position.coords.longitude,
-                };
-
-                console.log("📍 Vị trí user:", userLocation);
-
-                database.ref(`users/${username}`).update({
-                    location: userLocation,
-                    isOnline: true,
-                });
-
-                database.ref(`users/${username}/isOnline`).onDisconnect().set(false);
-
-                addUserMarker(userLocation, userData.color, username);
-            },
-            (error) => {
-                console.error("⚠ Lỗi lấy vị trí:", error);
-                alert("⚠ Không thể lấy vị trí của bạn!");
+            if (!userData || userData.password !== password) {
+                errorMessage.innerText = "⚠ Tài khoản hoặc mật khẩu không đúng!";
+                return;
             }
-        );
 
-        loadOnlineUsers();
-    });
-}
+            console.log("✅ Đăng nhập thành công!");
+            userId = username;
+            userColor = userData.color;
+            localStorage.setItem("userId", userId);
+            localStorage.setItem("userColor", userColor);
 
-window.addEventListener("beforeunload", () => {
-    if (localStorage.getItem("userId")) {
-        database.ref(`users/${localStorage.getItem("userId")}`).update({ isOnline: false });
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const userLocation = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    };
+
+                    database.ref(`users/${userId}`).update({
+                        location: userLocation,
+                        isOnline: true
+                    });
+
+                    addUserMarker(userLocation, userColor, userId, userId);
+                    loginContainer.style.display = "none";
+
+                    map.flyTo({
+                        center: [userLocation.lng, userLocation.lat],
+                        zoom: 15,
+                        speed: 0.5
+                    });
+
+                    trackUserLocation();
+                    loadOnlineUsers();
+                },
+                (error) => {
+                    console.error("⚠ Lỗi lấy vị trí:", error);
+                    alert("⚠ Không thể lấy vị trí của bạn!");
+                }
+            );
+        });
     }
-    localStorage.clear();
+
+    // 🏁 Ngắt kết nối khi user tắt trình duyệt
+    window.addEventListener("beforeunload", () => {
+        if (userId) {
+            database.ref(`users/${userId}`).update({ isOnline: false });
+        }
+    });
+
+    // 🔥 CSS hiệu ứng nhấp nháy
+    const style = document.createElement("style");
+    style.innerHTML = `
+        @keyframes blink-animation {
+            0% { opacity: 1; width: 30px; height: 30px; }
+            50% { opacity: 0.2; width: 35px; height: 35px; }
+            100% { opacity: 1; width: 30px; height: 30px; }
+        }
+    `;
+    document.head.appendChild(style);
 });
