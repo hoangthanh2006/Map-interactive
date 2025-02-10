@@ -54,7 +54,7 @@
     <header>
       <!-- place navbar here -->
     </header>
-    <main>
+    <main class="container-fluid">
       <div id="map"></div>
       <div>
         <!-- Thêm điều khiển chỉnh sửa địa điểm -->
@@ -79,6 +79,20 @@
         <div class="img-runner"></div>
 
       </div>
+      <div id="login-container" class="login-container">
+        <h2>Đăng Nhập</h2>
+        <form id="login-form">
+            <div class="input-group">
+                <input type="text" id="username" placeholder="Tên đăng nhập" required>
+            </div>
+            <div class="input-group password-group">
+                <input type="password" id="password" placeholder="Mật khẩu" required>
+                <span class="toggle-password">👁️</span>
+            </div>
+            <p id="error-message"></p>
+            <button type="submit">Đăng Nhập</button>
+        </form>
+    </div>
     </main>
 
     <footer>

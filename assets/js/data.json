@@ -1,26 +1,32 @@
 {
     "users": {
       "42km-nam": {
+        "username": "42km-nam",
         "password": "42kmnam",
         "color": "#FF5733"
       },
       "42km-nu": {
+        "username": "42km-nu",
         "password": "42kmnu",
         "color": "#33A1FF"
       },
       "21km-nam": {
+        "username": "21km-nam",
         "password": "21kmnam",
         "color": "#45B39D"
       },
       "21km-nu": {
+        "username": "21km-nu",
         "password": "21kmnu",
         "color": "#F4D03F"
       },
       "10km-nam": {
+        "username": "10km-nam",
         "password": "10kmnam",
         "color": "#8E44AD"
       },
       "10km-nu": {
+        "username": "10km-nu",
         "password": "10kmnu",
         "color": "#E74C3C"
       }
