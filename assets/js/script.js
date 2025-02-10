@@ -404,8 +404,9 @@ document.addEventListener("DOMContentLoaded", () => {
             const markerElement = document.createElement("div");
             markerElement.className = "user-marker blink";
             markerElement.style.backgroundColor = color;
-            markerElement.style.width = "20px";
-            markerElement.style.height = "20px";
+            markerElement.style.width = "30px";
+            markerElement.style.height = "30px";
+            markerElement.style.boxSizing = "border-box";
             markerElement.style.borderRadius = "50%";
             markerElement.style.border = "2px solid white";
 
@@ -419,13 +420,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const style = document.createElement("style");
     style.innerHTML = `
         .blink {
-            animation: blink-animation 1s infinite;
+            animation: blink-animation 1s alternate infinite;
         }
         
         @keyframes blink-animation {
-            0% { opacity: 1; }
-            50% { opacity: 0.2; }
-            100% { opacity: 1; }
+            0% { opacity: 1; width: 30px; height: 30px; }
+            50% { opacity: 0.2; width: 35px; height: 35px; }
+
+         
+            100% { opacity: 1; width: 30px; height: 30px; }
         }
     `;
     document.head.appendChild(style);
