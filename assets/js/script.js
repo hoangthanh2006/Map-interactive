@@ -310,13 +310,22 @@ firebase.initializeApp(firebaseConfig);
 
 // Kết nối Firebase
 const database = firebase.database();
+
+
 let userMarkers = {}; // Lưu tất cả marker của user
+
+database.ref("users").on("child_removed", (snapshot) => {
+    const userKey = snapshot.key;
+    removeUserMarker(userKey);
+});
 
 // Hàm tạo/di chuyển marker + hiệu ứng nhấp nháy
 function addUserMarker(location, color, userKey) {
-  if (userMarkers[userKey]) {
-    userMarkers[userKey].setLngLat([location.lng, location.lat]);
-  } else {
+    if (userMarkers[userKey]) {
+        userMarkers[userKey].setLngLat([location.lng, location.lat]);
+        return;
+    }
+
     const markerElement = document.createElement("div");
     markerElement.className = "user-marker blink";
     Object.assign(markerElement.style, {
@@ -331,80 +340,120 @@ function addUserMarker(location, color, userKey) {
     userMarkers[userKey] = new mapboxgl.Marker(markerElement)
       .setLngLat([location.lng, location.lat])
       .addTo(map);
-  }
 }
+
+function removeUserMarker(userKey) {
+    if (userMarkers[userKey]) {
+        userMarkers[userKey].remove(); // Xóa marker khỏi bản đồ
+        delete userMarkers[userKey]; // Xóa khỏi danh sách
+    }
+}
+
+// Cập nhật danh sách online users
 function loadOnlineUsers() {
     database.ref("users").on("value", (snapshot) => {
         snapshot.forEach((childSnapshot) => {
             const userData = childSnapshot.val();
-            const userId = childSnapshot.key;
+            const userKey = childSnapshot.key;
             const userColor = userData.color;
             const userLocation = userData.location;
 
-            // 🔥 Chỉ hiển thị user nếu `isOnline: true`
             if (userLocation && userData.isOnline) {
-                addUserMarker(userLocation, userColor, userId);
+                addUserMarker(userLocation, userColor, userKey);
+            } else {
+                removeUserMarker(userKey);
             }
         });
     });
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  const loginContainer = document.getElementById("login-container");
-  const loginForm = document.getElementById("login-form");
-  const usernameInput = document.getElementById("username");
-  const passwordInput = document.getElementById("password");
-  const errorMessage = document.getElementById("error-message");
+    const loginContainer = document.getElementById("login-container");
+    const loginForm = document.getElementById("login-form");
+    const usernameInput = document.getElementById("username");
+    const passwordInput = document.getElementById("password");
+    const errorMessage = document.getElementById("error-message");
 
-  const userId = localStorage.getItem("userId");
-  const userColor = localStorage.getItem("userColor");
-  const userLocation = localStorage.getItem("userLocation");
+    const userId = localStorage.getItem("userId");
+    const userColor = localStorage.getItem("userColor");
+    const userLocation = localStorage.getItem("userLocation");
 
-  if (userId && userColor) {
-    if (userId !== "admin") {
-      document.getElementById("admin")?.style.setProperty("display", "none");
+    if (userId && userColor && userLocation) {
+        const parsedLocation = JSON.parse(userLocation);
+        addUserMarker(parsedLocation, userColor, userId);
     }
 
-    loginContainer.style.display = "none";
-
-    if (userLocation) {
-      const parsedLocation = JSON.parse(userLocation);
-      addUserMarker(parsedLocation, userColor, userId);
-
-      if (userId !== "admin") {
-        map.easeTo({
-          zoom: 15,
-          center: [parsedLocation.lng, parsedLocation.lat],
-          duration: 500,
+    if (userId) {
+        database.ref(`users/${userId}/isOnline`).once("value", (snapshot) => {
+            if (snapshot.val() && userColor && userLocation) {
+                const parsedLocation = JSON.parse(userLocation);
+                addUserMarker(parsedLocation, userColor, userId);
+            } else {
+                localStorage.clear(); // Nếu user offline, xóa localStorage
+            }
         });
-      }
     }
 
-    setInterval(updateUserLocation, 3000); // Giảm tần suất cập nhật xuống mỗi 3 giây
-  }
+    if (userId) {
+        if (userId !== "admin") {
+            document.getElementById("admin")?.style.setProperty("display", "none");
+        }
 
-  loadOnlineUsers();
+        loginContainer.style.display = "none";
 
+        if (userLocation) {
+            const parsedLocation = JSON.parse(userLocation);
+            if (userId !== "admin") {
+                map.easeTo({
+                    zoom: 15,
+                    center: [parsedLocation.lng, parsedLocation.lat],
+                    duration: 500,
+                });
+            }
+        }
 
-  function updateUserLocation() {
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const userLocation = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        };
+        setInterval(updateUserLocation, 3000);
+    }
 
-        database.ref(`users/${userId}`).update({ location: userLocation });
-        localStorage.setItem("userLocation", JSON.stringify(userLocation));
-        addUserMarker(userLocation, userColor, userId);
-      },
-      (error) => console.error("⚠ Lỗi lấy vị trí:", error)
-    );
-  }
+    let isUserInteracting = false;
 
-  // CSS hiệu ứng nhấp nháy
-  const style = document.createElement("style");
-  style.innerHTML = `
+    map.on("movestart", () => {
+        isUserInteracting = true;
+    });
+
+    map.on("moveend", () => {
+        setTimeout(() => {
+            isUserInteracting = false;
+        }, 5000);
+    });
+
+    function updateUserLocation() {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const userLocation = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude,
+                };
+
+                database.ref(`users/${userId}`).update({ location: userLocation });
+
+                addUserMarker(userLocation, userColor, userId);
+
+                if (!isUserInteracting && userId !== "admin") {
+                    map.easeTo({
+                        zoom: 15,
+                        center: [userLocation.lng, userLocation.lat],
+                        duration: 500,
+                    });
+                }
+            },
+            (error) => console.error("⚠ Lỗi lấy vị trí:", error)
+        );
+    }
+
+    // CSS hiệu ứng nhấp nháy
+    const style = document.createElement("style");
+    style.innerHTML = `
         .blink {
             animation: blink-animation 1s alternate infinite;
         }
@@ -414,57 +463,20 @@ document.addEventListener("DOMContentLoaded", () => {
             100% { opacity: 1; width: 30px; height: 30px; }
         }
     `;
-  document.head.appendChild(style);
+    document.head.appendChild(style);
 
-  // Xử lý đăng nhập
-  loginForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-    const username = usernameInput.value.trim();
-    const password = passwordInput.value.trim();
+    loginForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const username = usernameInput.value.trim();
+        const password = passwordInput.value.trim();
 
-    if (!username || !password) {
-      errorMessage.innerText = "❌ Vui lòng nhập đầy đủ thông tin!";
-      return;
-    }
-
-    loginUser(username, password);
-  });
-  let isUserInteracting = false; // Kiểm tra người dùng có thao tác bản đồ không
-
-  map.on("movestart", () => {
-    isUserInteracting = true;
-  }); // Khi bắt đầu di chuyển, tắt tự động focus
-  map.on("moveend", () => {
-    setTimeout(() => {
-      isUserInteracting = false;
-    }, 5000); // Sau 5s không thao tác sẽ tự quay về user
-  });
-
-  function updateUserLocation() {
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const userLocation = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        };
-
-        database.ref(`users/${userId}`).update({ location: userLocation });
-        localStorage.setItem("userLocation", JSON.stringify(userLocation));
-        addUserMarker(userLocation, userColor, userId);
-
-        // 🔥 Chỉ cập nhật vị trí nếu người dùng KHÔNG thao tác bản đồ ngoại trừ người dùng là admin
-
-        if (!isUserInteracting && userId !== "admin") {
-          map.easeTo({
-            zoom: 15,
-            center: [userLocation.lng, userLocation.lat],
-            duration: 500,
-          });
+        if (!username || !password) {
+            errorMessage.innerText = "❌ Vui lòng nhập đầy đủ thông tin!";
+            return;
         }
-      },
-      (error) => console.error("⚠ Lỗi lấy vị trí:", error)
-    );
-  }
+
+        loginUser(username, password);
+    });
 });
 
 // Hàm đăng nhập
@@ -473,7 +485,6 @@ function loginUser(username, password) {
         const userData = snapshot.val();
 
         if (!userData || userData.password !== password) {
-            console.log("❌ Sai tên đăng nhập hoặc mật khẩu!");
             document.getElementById("error-message").innerText = "⚠ Tài khoản hoặc mật khẩu không đúng!";
             return;
         }
@@ -483,23 +494,23 @@ function loginUser(username, password) {
 
         localStorage.setItem("userId", username);
         localStorage.setItem("userColor", userData.color);
-        localStorage.setItem("userLocation", JSON.stringify(userData.location));
 
         navigator.geolocation.getCurrentPosition(
             (position) => {
                 const userLocation = {
                     lat: position.coords.latitude,
-                    lng: position.coords.longitude
+                    lng: position.coords.longitude,
                 };
 
                 console.log("📍 Vị trí user:", userLocation);
 
                 database.ref(`users/${username}`).update({
                     location: userLocation,
-                    isOnline: true // 🔥 Cập nhật trạng thái user đang online
+                    isOnline: true,
                 });
 
-                localStorage.setItem("userLocation", JSON.stringify(userLocation));
+                database.ref(`users/${username}/isOnline`).onDisconnect().set(false);
+
                 addUserMarker(userLocation, userData.color, username);
             },
             (error) => {
@@ -508,20 +519,13 @@ function loginUser(username, password) {
             }
         );
 
-
-        loadOnlineUsers(); // Hiển thị tất cả user đang online
+        loadOnlineUsers();
     });
 }
 
-
-
-
-// Xóa thông tin trên localStorage khi user đóng trình duyệt
 window.addEventListener("beforeunload", () => {
-    if (userId) {
-        database.ref(`users/${userId}`).update({ isOnline: false });
+    if (localStorage.getItem("userId")) {
+        database.ref(`users/${localStorage.getItem("userId")}`).update({ isOnline: false });
     }
-    localStorage.removeItem("userId");
-    localStorage.removeItem("userColor");
-    localStorage.removeItem("userLocation");
+    localStorage.clear();
 });
