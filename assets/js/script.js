@@ -393,7 +393,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     console.error("⚠ Lỗi lấy vị trí:", error);
                 }
             );
-        }, 3000);
+        }, 500);
     }
 
     // Hàm tạo/di chuyển marker + nhấp nháy
