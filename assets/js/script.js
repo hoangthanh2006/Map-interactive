@@ -377,7 +377,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const userId = childSnapshot.key;
             const userColor = userData.color;
             const userLocation = userData.location;
-
+            console.log(userData.isOnline)
             // 🔥 Chỉ hiển thị user nếu `isOnline: true`
             if (userLocation && userData.isOnline) {
                 addUserMarker(userLocation, userColor, userId);
@@ -472,6 +472,7 @@ function loginUser(username, password) {
     database.ref(`users/${username}`).once("value", (snapshot) => {
         const userData = snapshot.val();
 
+
         if (!userData || userData.password !== password) {
             console.log("❌ Sai tên đăng nhập hoặc mật khẩu!");
             document.getElementById("error-message").innerText = "⚠ Tài khoản hoặc mật khẩu không đúng!";
@@ -509,16 +510,30 @@ function loginUser(username, password) {
         );
 
         loadOnlineUsers(); // Hiển thị tất cả user đang online
+
+  function loadOnlineUsers() {
+    database.ref("users").on("value", (snapshot) => {
+        snapshot.forEach((childSnapshot) => {
+            const userData = childSnapshot.val();
+            const userId = childSnapshot.key;
+            const userColor = userData.color;
+            const userLocation = userData.location;
+            console.log(userData.isOnline)
+            // 🔥 Chỉ hiển thị user nếu `isOnline: true`
+            if (userLocation && userData.isOnline) {
+                addUserMarker(userLocation, userColor, userId);
+            }
+        });
+    });
+}
     });
 }
 
 
+
 // Xóa thông tin trên localStorage khi user đóng trình duyệt
 window.addEventListener("beforeunload", () => {
-    if (userId) {
-        database.ref(`users/${userId}`).update({ isOnline: false });
-    }
-    localStorage.removeItem("userId");
-    localStorage.removeItem("userColor");
-    localStorage.removeItem("userLocation");
+  localStorage.removeItem("userId");
+  localStorage.removeItem("userColor");
+  localStorage.removeItem("userLocation");
 });
