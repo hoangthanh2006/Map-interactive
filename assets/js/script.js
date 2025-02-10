@@ -333,6 +333,21 @@ function addUserMarker(location, color, userKey) {
       .addTo(map);
   }
 }
+function loadOnlineUsers() {
+    database.ref("users").on("value", (snapshot) => {
+        snapshot.forEach((childSnapshot) => {
+            const userData = childSnapshot.val();
+            const userId = childSnapshot.key;
+            const userColor = userData.color;
+            const userLocation = userData.location;
+
+            // 🔥 Chỉ hiển thị user nếu `isOnline: true`
+            if (userLocation && userData.isOnline) {
+                addUserMarker(userLocation, userColor, userId);
+            }
+        });
+    });
+}
 
 document.addEventListener("DOMContentLoaded", () => {
   const loginContainer = document.getElementById("login-container");
@@ -368,18 +383,9 @@ document.addEventListener("DOMContentLoaded", () => {
     setInterval(updateUserLocation, 3000); // Giảm tần suất cập nhật xuống mỗi 3 giây
   }
 
-  loadAllUsers();
+  loadOnlineUsers();
 
-  function loadAllUsers() {
-    database.ref("users").on("value", (snapshot) => {
-      snapshot.forEach((childSnapshot) => {
-        const { color, location } = childSnapshot.val();
-        const userKey = childSnapshot.key;
 
-        if (location) addUserMarker(location, color, userKey);
-      });
-    });
-  }
   function updateUserLocation() {
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -502,15 +508,20 @@ function loginUser(username, password) {
             }
         );
 
+
         loadOnlineUsers(); // Hiển thị tất cả user đang online
     });
 }
 
 
 
+
 // Xóa thông tin trên localStorage khi user đóng trình duyệt
 window.addEventListener("beforeunload", () => {
-  localStorage.removeItem("userId");
-  localStorage.removeItem("userColor");
-  localStorage.removeItem("userLocation");
+    if (userId) {
+        database.ref(`users/${userId}`).update({ isOnline: false });
+    }
+    localStorage.removeItem("userId");
+    localStorage.removeItem("userColor");
+    localStorage.removeItem("userLocation");
 });
