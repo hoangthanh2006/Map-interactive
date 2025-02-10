@@ -449,15 +449,25 @@ function trackUserLocation() {
                     duration: 1000
                 });
             }
+            map.flyTo({
+                center: [userLocation.lng, userLocation.lat],
+                zoom: 15,
+                speed: 0.5, // Điều chỉnh tốc độ di chuyển
+            });
         },
         (error) => console.error("⚠ Lỗi lấy vị trí:", error),
-        { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 300 }
+
+        
     );
+  
+
+    
 }
 
 // 🎯 Xử lý tương tác bản đồ
 map.on("movestart", () => isUserInteracting = true);
-map.on("moveend", () => setTimeout(() => isUserInteracting = false, 5000));
+map.on("moveend", () => setTimeout(() => isUserInteracting = false, 1000));
 
 // 🏁 Xử lý đăng nhập
 document.addEventListener("DOMContentLoaded", () => {
