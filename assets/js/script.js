@@ -488,7 +488,7 @@ function smoothMoveMarker(userKey, newLocation) {
 
 // 🎯 Xử lý tương tác bản đồ
 map.on("movestart", () => isUserInteracting = true);
-map.on("moveend", () => setTimeout(() => isUserInteracting = false, 1000));
+map.on("moveend", () => setTimeout(() => isUserInteracting = false, 3000));
 
 // 🏁 Xử lý đăng nhập
 document.addEventListener("DOMContentLoaded", () => {
