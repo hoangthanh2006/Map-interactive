@@ -379,7 +379,22 @@ function addUserMarker(location, color, userKey, userName) {
     // Tạo phần tử HTML cho marker
     const markerElement = document.createElement("div");
     markerElement.className = "user-marker";
-    markerElement.innerHTML = `<span class="marker-name">${userName}</span>`;
+    markerElement.innerHTML = `<span class="marker-name">${userName}</span><span class="img-runner">
+      <div class="top3-runer">
+       <div class = "top1">
+       <span>Top 1:</span>
+        <span class="name">Nguyễn Văn A</span>
+       </div>
+        <div class = "top2">
+        <span>Top 2:</span>
+        <span class="name">Nguyễn Văn B</span>
+       </div>
+        <div class = "top3">
+        <span>Top 3:</span>
+        <span class="name">Nguyễn Văn C</span>
+       </div>
+      </div>
+    </span>`;
 
     // Thiết lập CSS
     Object.assign(markerElement.style, {
@@ -538,63 +553,83 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // 🟢 Hàm đăng nhập
     function loginUser(username, password) {
-        database.ref(`users/${username}`).once("value", (snapshot) => {
-            const userData = snapshot.val();
+      database.ref(`users/${username}`).once("value", (snapshot) => {
+          const userData = snapshot.val();
+          const adminTools = document.querySelectorAll(".admin");
+         
+          if (!userData || userData.password !== password) {
+              errorMessage.innerText = "⚠ Tài khoản hoặc mật khẩu không đúng!";
+              return;
+          }
+  
+          // Ẩn admin tools nếu không phải admin
+          if (username !== "admin") {
+              adminTools.forEach((tool) => {
+                  tool.style.display = "none";
+              });
+          } else {
+              adminTools.forEach((tool) => {
+                  tool.style.display = "block";
+              });
 
-            if (!userData || userData.password !== password) {
-                errorMessage.innerText = "⚠ Tài khoản hoặc mật khẩu không đúng!";
-                return;
-            }
-
-            // Ân admin tool nếu user không phải admin
-            if (username !== "admin") {
-                const adminTools = document.querySelectorAll(".admin");
-                adminTools.forEach((tool) => {
-                    tool.style.display = "none";
-                });
-            }
-
-            console.log("✅ Đăng nhập thành công!");
-            userId = username;
-            userColor = userData.color;
-
-            localStorage.setItem("userId", userId);
-            localStorage.setItem("userColor", userColor);
-            // set isOnline to true
-            database.ref(`users/${userId}/isOnline`).set(true);
-
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    const userLocation = {
-                        lat: position.coords.latitude,
-                        lng: position.coords.longitude
-                    };
-
-                    database.ref(`users/${userId}`).update({
-                        location: userLocation,
-                        isOnline: true
-                    });
-
-                    addUserMarker(userLocation, userColor, userId, userId);
-                    loginContainer.style.display = "none";
-
-                    map.flyTo({
-                        center: [userLocation.lng, userLocation.lat],
-                        zoom: 15,
-                        speed: 0.5
-                    });
-
-                    trackUserLocation();
-                    loadOnlineUsers();
-                },
-                (error) => {
-                    console.error("⚠ Lỗi lấy vị trí:", error);
-                    alert("⚠ Không thể lấy vị trí của bạn!");
-                }
-            );
-        });
-    }
-
+             
+          }
+  
+          console.log("✅ Đăng nhập thành công!");
+          userId = username;
+          userColor = userData.color;
+  
+          localStorage.setItem("userId", userId);
+          localStorage.setItem("userColor", userColor);
+  
+          // Set isOnline = true
+          database.ref(`users/${userId}/isOnline`).set(true);
+  
+          // 🛠 Xóa location của user trước đó trước khi cập nhật vị trí mới
+          database.ref(`users/${userId}/location`).remove()
+              .then(() => {
+                  console.log("🗑 Xóa vị trí cũ thành công!");
+              })
+              .catch((error) => {
+                  console.error("⚠ Lỗi khi xóa vị trí cũ:", error);
+              });
+  
+          navigator.geolocation.getCurrentPosition(
+              (position) => {
+                  const userLocation = {
+                      lat: position.coords.latitude,
+                      lng: position.coords.longitude
+                  };
+  
+                  // Cập nhật vị trí mới
+                  database.ref(`users/${userId}`).update({
+                      location: userLocation,
+                      isOnline: true
+                  });
+  
+                  addUserMarker(userLocation, userColor, userId, userId);
+                  loginContainer.style.display = "none";
+  
+                  map.flyTo({
+                      center: [userLocation.lng, userLocation.lat],
+                      zoom: 15,
+                      speed: 0.5
+                  });
+  
+                  trackUserLocation();
+                  loadOnlineUsers();
+              },
+              (error) => {
+                  console.error("⚠ Lỗi lấy vị trí:", error);
+                  alert("⚠ Không thể lấy vị trí của bạn!");
+              }
+          );
+          
+        
+        
+      });
+  }
+  
     // 🏁 Ngắt kết nối khi user tắt trình duyệt
     window.addEventListener("beforeunload", () => {
         if (userId) {
@@ -620,5 +655,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     `;
     document.head.appendChild(style);
+
+
 });
 

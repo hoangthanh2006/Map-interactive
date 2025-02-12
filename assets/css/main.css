@@ -58,18 +58,59 @@
     background-color: blueviolet;
 }
 .img-runner {
-    width: 150px;
-    height: 150px;
-    border-radius: 50%;
-    background-color: #e5ff00;
-    /* animation: pulse 1s infinite; */
     position: absolute;
-    top: 100%;
-    left: 0%;
+    top: -120px;
+    left: 50%;
     z-index: 99;
     transform: translate(-50%, -50%);
-    display: none;
+    /* display: none; */
 }
+.img-runner {
+  width: 250px;
+  background: #0000004b;
+  border-radius: 10px;
+  /* box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); */
+  padding: 10px;
+  min-width: 150px;
+  font-family: Arial, sans-serif;
+}
+
+.top3-runer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.top3-runer .top1,
+.top3-runer .top2,
+.top3-runer .top3 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 18px;
+  font-weight: bold;
+  width: 100%;
+  color: rgb(255, 255, 255); /* Chữ màu trắng để dễ đọc */
+}
+
+.top1 {
+  background: linear-gradient(135deg, #9f224e,#9f224e) !important; /* Vàng */
+}
+
+.top2 {
+  background: linear-gradient(135deg,  #9a2a51, #9a2a51) !important; /* Bạc */
+}
+
+.top3 {
+  background: linear-gradient(135deg,  #973457, #973457) !important; /* Đồng */
+}
+
+.name {
+  font-weight: bold;
+  margin-left: 5px;
+}
+
 .mapboxgl-marker {
     transform: translate(-50%, -50%);
 }
@@ -193,4 +234,8 @@ button:hover {
   stroke: white !important;
   stroke-width: 3px !important;
   fill: aliceblue !important;
+}
+
+.admin {
+  display: none;
 }
