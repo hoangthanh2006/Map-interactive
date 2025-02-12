@@ -63,7 +63,7 @@
     left: 50%;
     z-index: 99;
     transform: translate(-50%, -50%);
-    /* display: none; */
+    display: none;
 }
 .img-runner {
   width: 250px;
@@ -238,4 +238,47 @@ button:hover {
 
 .admin {
   display: none;
+}
+.logout {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+}
+.draw-line-tool {
+  position: fixed;
+  top: 10px;
+  left: 150px;
+z-index: 999;
+width: 300px;
+height: auto;
+}
+
+.draw-line-tool {
+  display: flex;
+  gap: 10px;
+  /* padding: 10px; */
+  /* background: #f4f4f4; */
+  border-radius: 8px;
+}
+
+.draw-line-tool button {
+  padding: 8px 12px;
+  border: none;
+  background: #007bff;
+  color: white;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: 0.3s;
+  font-size: 12px;
+}
+
+.draw-line-tool button:hover {
+  background: #0056b3;
+}
+
+#load-draw {
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  cursor: pointer;
 }

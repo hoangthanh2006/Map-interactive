@@ -8,7 +8,7 @@ mapboxgl.accessToken =
   center: [106.702293, 10.78208],
   zoom: 12, // Mức độ zoom
 });
-// map.setStyle("mapbox://styles/hoangthanh2006/cm6z81qfi004p01qv46ec1fwp");
+
 map.on("style.load", () => {
     console.log("🔄 Style đã được tải thành công!");
 });
@@ -273,9 +273,6 @@ const drawing = new MapboxDraw({
         "fill-opacity": 1,
         "line-opacity": 1,
         "line-blur": 0,
-      
-     
-
 
       },
       layout: {
@@ -549,6 +546,8 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         loginUser(username, password);
+        checkAdmin(username);
+
     });
 
     // 🟢 Hàm đăng nhập
@@ -629,6 +628,14 @@ document.addEventListener("DOMContentLoaded", () => {
         
       });
   }
+
+  // Hàm đăng xuất
+    const logoutButton = document.getElementById("logout");
+    logoutButton.addEventListener("click", () => {
+        database.ref(`users/${userId}`).update({ isOnline: false });
+        localStorage.clear();
+        window.location.reload();
+    });
   
     // 🏁 Ngắt kết nối khi user tắt trình duyệt
     window.addEventListener("beforeunload", () => {
@@ -657,5 +664,104 @@ document.addEventListener("DOMContentLoaded", () => {
     document.head.appendChild(style);
 
 
+// Kiểm tra user phải là admin mới thực hiện
+function checkAdmin(username) {
+  if (username === "admin") {
+      const saveButton = document.getElementById("save");
+      const clearButton = document.getElementById("clear");
+      const loadSelect = document.getElementById("load-draw");
+      const loadButton = document.getElementById("load");
+      const deleteMapButton = document.getElementById("delete-map");
+      let currentDrawing = null; // Biến lưu bản vẽ hiện tại trên map
+
+      // 🛠 Lưu bản vẽ với tên tùy chỉnh
+      saveButton.addEventListener("click", () => {
+          const name = prompt("Nhập tên bản vẽ:");
+          if (!name) return;
+
+          const data = drawing.getAll();
+          const drawId = `draw_${Date.now()}`;
+          // Đảm bảo tất cả features có properties
+    data.features = data.features.map(feature => ({
+      ...feature,
+      properties: feature.properties || {}
+  }));
+
+          database.ref(`drawings/${drawId}`).set({ name, data })
+              .then(() => {
+                  console.log(`✅ Lưu bản vẽ "${name}" thành công!`);
+                  loadDrawingsList(); // Cập nhật danh sách bản vẽ
+              })
+              .catch((error) => console.error("⚠ Lỗi khi lưu:", error));
+      });
+
+      // 🗑 Xóa bản vẽ trên bản đồ nhưng không xóa trong Firebase
+      deleteMapButton.addEventListener("click", () => {
+          drawing.deleteAll();
+          currentDrawing = null;
+      });
+
+      // 🗑 Xóa tất cả bản vẽ (CẢ TRONG DATABASE)
+      clearButton.addEventListener("click", () => {
+          drawing.deleteAll();
+          database.ref("drawings").remove()
+              .then(() => {
+                  console.log("🗑 Xóa tất cả bản vẽ thành công!");
+                  loadDrawingsList();
+              })
+              .catch((error) => console.error("⚠ Lỗi khi xóa:", error));
+      });
+
+      // 📥 Load danh sách bản vẽ từ Firebase
+      function loadDrawingsList() {
+          loadSelect.innerHTML = `<option value="">Chọn bản vẽ...</option>`;
+          database.ref("drawings").once("value", (snapshot) => {
+              const data = snapshot.val();
+              if (data) {
+                  Object.entries(data).forEach(([drawId, { name }]) => {
+                      const option = document.createElement("option");
+                      option.value = drawId;
+                      option.textContent = name || `Bản vẽ ${drawId.split("_")[1]}`;
+                      loadSelect.appendChild(option);
+                  });
+              }
+              // console.log("📌 Dữ liệu bản vẽ:", data);
+
+          });
+
+      }
+     // 🎨 Khi chọn bản vẽ, tải lên bản đồ
+loadButton.addEventListener("click", () => {
+  const drawId = loadSelect.value;
+  if (!drawId) return;
+
+  database.ref(`drawings/${drawId}`).once("value", (snapshot) => {
+      let data = snapshot.val()?.data;
+
+      if (data) {
+          // ✅ Đảm bảo mỗi feature có "properties"
+          data.features = data.features.map(feature => ({
+              ...feature,
+              properties: feature.properties || {} // Nếu thiếu thì thêm {}
+          }));
+
+          drawing.set(data); // Vẽ bản vẽ lên map
+          console.log("✅ Tải bản vẽ thành công!", data);
+          currentDrawing = data; // Lưu lại bản vẽ trên map
+      } else {
+          console.error("⚠ Lỗi: Không có dữ liệu bản vẽ hoặc bị null!");
+      }
+  });
 });
 
+
+      // 🔄 Load danh sách bản vẽ khi trang mở
+      loadDrawingsList();
+  } else {
+      // Ẩn công cụ vẽ nếu không phải admin
+      document.querySelector(".draw-line-tool").style.display = "none";
+  }
+}
+
+
+});
