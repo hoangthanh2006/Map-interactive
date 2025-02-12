@@ -1,10 +1,16 @@
 mapboxgl.accessToken =
   "pk.eyJ1IjoiaG9hbmd0aGFuaDIwMDYiLCJhIjoiY2xmYzBqYTB3MDFuNjN3dGE1cm11MzE4MyJ9.IB-Z56PqrChaX87Z508FZA"; // Thay bằng API Key của bạn
-const map = new mapboxgl.Map({
+//   map.remove();
+
+  const map = new mapboxgl.Map({
   container: "map", // ID của thẻ div chứa bản đồ
-  style: "mapbox://styles/hoangthanh2006/cm68s7pmj000e01qu747e5kyd", // Kiểu bản đồ
+  style: "mapbox://styles/hoangthanh2006/cm6z81qfi004p01qv46ec1fwp", // Kiểu bản đồ
   center: [106.702293, 10.78208],
   zoom: 12, // Mức độ zoom
+});
+// map.setStyle("mapbox://styles/hoangthanh2006/cm6z81qfi004p01qv46ec1fwp");
+map.on("style.load", () => {
+    console.log("🔄 Style đã được tải thành công!");
 });
 
 // Thêm điều khiển zoom
@@ -29,6 +35,8 @@ map.addControl(new mapboxgl.NavigationControl());
 // "top-left", // Vị trí hiển thị
 
 // );
+
+
 
 const geocoder = new MapboxGeocoder({
   accessToken: mapboxgl.accessToken,
@@ -277,55 +285,55 @@ const drawing = new MapboxDraw({
         // 'line-dasharray': [1, 1],
       },
     },
-    {
-      id: "draw-point",
-      type: "circle",
-      filter: ["all", ["==", "$type", "Point"]],
-      paint: {
-        "circle-radius": 5,
-        "circle-color": "#fff",
-      },
-      layout: {
-        visibility: "visible",
-      },
-    },
-    {
-      id: "draw-trash",
-      type: "symbol",
-      filter: ["all", ["==", "$type", "Point"]],
-      paint: {
-        "icon-color": "#fff",
-        "icon-size": 1.5,
-      },
-      layout: {
-        visibility: "visible",
-      },
-    },
-    {
-      id: "draw-trash-hover",
-      type: "symbol",
-      filter: ["all", ["==", "$type", "Point"]],
-      paint: {
-        "icon-color": "#fff",
-        "icon-size": 2,
-      },
-      layout: {
-        visibility: "visible",
-      },
-    },
-    {
-      id: "draw-trash-active",
-      type: "symbol",
-      filter: ["all", ["==", "$type", "Point"]],
-      paint: {
-        "icon-color": "#fff",
-        "icon-size": 2.5,
-      },
-      layout: {
-        visibility: "visible",
-      },
+    // {
+    //   id: "draw-point",
+    //   type: "circle",
+    //   filter: ["all", ["==", "$type", "Point"]],
+    //   paint: {
+    //     "circle-radius": 5,
+    //     "circle-color": "#fff",
+    //   },
+    //   layout: {
+    //     visibility: "visible",
+    //   },
+    // },
+    // {
+    //   id: "draw-trash",
+    //   type: "symbol",
+    //   filter: ["all", ["==", "$type", "Point"]],
+    //   paint: {
+    //     "icon-color": "#fff",
+    //     "icon-size": 1.5,
+    //   },
+    //   layout: {
+    //     visibility: "visible",
+    //   },
+    // },
+    // {
+    //   id: "draw-trash-hover",
+    //   type: "symbol",
+    //   filter: ["all", ["==", "$type", "Point"]],
+    //   paint: {
+    //     "icon-color": "#fff",
+    //     "icon-size": 2,
+    //   },
+    //   layout: {
+    //     visibility: "visible",
+    //   },
+    // },
+    // {
+    //   id: "draw-trash-active",
+    //   type: "symbol",
+    //   filter: ["all", ["==", "$type", "Point"]],
+    //   paint: {
+    //     "icon-color": "#fff",
+    //     "icon-size": 2.5,
+    //   },
+    //   layout: {
+    //     visibility: "visible",
+    //   },
       
-    },
+    // },
   ],
 });
 
@@ -540,8 +548,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
             // Ân admin tool nếu user không phải admin
             if (username !== "admin") {
-                const adminTools = document.getElementById("admin");
-                adminTools.style.display = "none";
+                const adminTools = document.querySelectorAll(".admin");
+                adminTools.forEach((tool) => {
+                    tool.style.display = "none";
+                });
             }
 
             console.log("✅ Đăng nhập thành công!");
@@ -611,5 +621,4 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
     document.head.appendChild(style);
 });
-
 
