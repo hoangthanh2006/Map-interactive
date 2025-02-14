@@ -46,6 +46,10 @@
     /> -->
     <!-- mapbox draw -->
     <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.2.0/mapbox-gl-draw.js"></script>
+    <!-- loadder 3D -->
+    <!-- <script src="https://unpkg.com/@loaders.gl/gltf"></script> -->
+  
+
     <link href="https://cdnjs.cloudflare.com/ajax/libs/mapbox-gl-draw/1.2.0/mapbox-gl-draw.css" rel="stylesheet" />
     <!-- Custom CSS -->
     <link rel="stylesheet" href="assets/css/main.css" />
@@ -65,11 +69,16 @@
 
         <!-- Click xoay map -->
      <div id="admin" class="admin rotates">
-      <button class="dieuhuong" id="rotate">R Left to right</button>
-      <button class="dieuhuong" id="rotate-right">R Right to left</button>
-      <button class="dieuhuong" id="zoom-in-left">Zoom in left</button>
-      <button class="dieuhuong" id="zoom-in-right">Zoom in right</button>
-      <button class="dieuhuong" id="zoom-out">Zoom out</button>
+      <span class="dieuhuong bttun-admin-control" id="rotate">R Left to right</span>
+      <span class="dieuhuong bttun-admin-control" id="rotate-right">R Right to left</span>
+      <span class="dieuhuong bttun-admin-control" id="zoom-in-left">Zoom in left</span>
+      <span class="dieuhuong bttun-admin-control" id="zoom-in-right">Zoom in right</span>
+      <span class="dieuhuong bttun-admin-control" id="zoom-out">Zoom out</span>
+      <span class="dieuhuong bttun-admin-control" id="zoom-in-straight">Zoom in Straight</span>
+      <!-- Btn ẩn và hiện -->
+      <span class="dieuhuong bttun-admin-control" id="hide-all">Ẩn</span>
+      <span class="dieuhuong bttun-admin-control" id="show-all">Hiện</span>
+      
      </div>
      <!-- <div class="start">
       <button id="start">Start</button>
@@ -93,19 +102,23 @@
         </form>
     </div>
     <div class="logout">
-      <button id="logout">Đăng Xuất</button>
+      <span class="bttun-admin-control" id="logout">Đăng Xuất</span>
     </div>
-    <div class="draw-line-tool">
-      <button id="save">Lưu</button>
-      <button class="btn btn-danger" id="clear">Hủy</button>
+    <div class="admin draw-line-tool">
+      <span class="bttun-admin-control" id="save">Lưu</span>
+      <span class="bttun-admin-control" class="btn btn-danger" id="clear">Hủy</span>
 
       <select id="load-draw">
-        <option value="">Chọn bản vẽ...</option>
+        <option class="bttun-admin-control" value="">Chọn bản vẽ...</option>
       </select>
-      <button id="load">Load</button>
-      <button id="delete-map">Xóa</button>
+      <span class="bttun-admin-control" id="load">Load</span>
+      <span class="bttun-admin-control" id="delete-map">Xóa</span>
     </div>
-    
+    <div id="marker-control" class="admin">
+      <span class="bttun-admin-control" id="toggle-markers-custom">Hiện Marker</span>
+      <span class="bttun-admin-control" id="delete-markers-custom">Xóa Marker</span>
+  </div>
+  
     </main>
 
     <footer>

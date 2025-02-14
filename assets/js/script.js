@@ -134,6 +134,39 @@ zoomInRightButton.addEventListener
     }
   });
 
+  // Fly in straight
+const zoomInStraightButton = document.getElementById("zoom-in-straight");
+let zoomInStraightInterval = null; // Biến để kiểm soát trạng thái interval
+
+zoomInStraightButton.addEventListener("click", () => {
+  if (!zoomInStraightInterval) {
+    zoomInStraightInterval = setInterval(() => {
+      const currentZoom = map.getZoom();
+      const currentPitch = map.getPitch();
+      const currentBearing = map.getBearing();
+
+      if (currentZoom >= 18) {
+        // Dừng khi zoom đạt giới hạn mong muốn
+        clearInterval(zoomInStraightInterval);
+        zoomInStraightInterval = null;
+        return;
+      }
+
+      map.easeTo({
+        zoom: currentZoom + 0.005, // Tăng zoom in
+        pitch: Math.max(0, currentPitch - 0.5), // Giảm pitch để nhìn ngang dần
+        bearing: currentBearing, // Xoay nhẹ camera
+        duration: 50, // Mượt hơn
+      });
+    }
+    , 100);
+  }
+  else {
+    clearInterval(zoomInStraightInterval);
+    zoomInStraightInterval = null;
+  }
+}
+);
 
 // Fly-out
 const zoomOutButton = document.getElementById("zoom-out");
@@ -256,7 +289,7 @@ const drawing = new MapboxDraw({
       filter: ["all", ["==", "$type", "Polygon"]],
       paint: {
         "fill-color": "#fff",
-        "fill-opacity": 0.5,
+       
       },
       layout: {
         visibility: "visible",
@@ -267,10 +300,10 @@ const drawing = new MapboxDraw({
       type: "line",
       filter: ["all", ["==", "$type", "LineString"]],
       paint: {
-        "line-color": "#ff0000",
-        "line-width": 20,
-        "fill-color": "#EFF739 ",
-        "fill-opacity": 1,
+        "line-color": "#9f214e",
+        "line-width": 10,
+     
+      "line-emissive-strength": 1,
         "line-opacity": 1,
         "line-blur": 0,
 
@@ -336,6 +369,9 @@ const drawing = new MapboxDraw({
 
 // Thêm drawing vào bản đồ
 map.addControl(drawing, "top-right");
+
+// Set drawing line không bị thay đổi săc độ environment 3d trên map
+
 
 // ----------------- Thêm điểm -----------------
 
@@ -695,6 +731,7 @@ function checkAdmin(username) {
               .catch((error) => console.error("⚠ Lỗi khi lưu:", error));
       });
 
+
       // 🗑 Xóa bản vẽ trên bản đồ nhưng không xóa trong Firebase
       deleteMapButton.addEventListener("click", () => {
           drawing.deleteAll();
@@ -711,6 +748,48 @@ function checkAdmin(username) {
               })
               .catch((error) => console.error("⚠ Lỗi khi xóa:", error));
       });
+
+
+
+let drawHistory = []; // Stack lưu lịch sử vẽ
+let maxUndo = 50; // Giới hạn số lần undo
+
+// 🎨 Khi vẽ, lưu vào lịch sử
+map.on("draw.create", () => saveState());
+map.on("draw.update", () => saveState());
+map.on("draw.delete", () => saveState());
+
+
+function saveState() {
+  if (drawHistory.length >= maxUndo) drawHistory.shift(); // Giữ tối đa 50 lần
+  drawHistory.push(drawing.getAll()); // Lưu trạng thái hiện tại
+  console.log("📌 Lịch sử vẽ:", drawHistory);
+}
+
+
+// ⌨ Lắng nghe phím Ctrl + Z để undo
+document.addEventListener("keydown", (event) => {
+    if (event.ctrlKey && event.key === "z") {
+        event.preventDefault();
+        undoLastDraw();
+    }
+});
+
+function undoLastDraw() {
+  if (drawHistory.length > 1) {
+      drawHistory.pop(); // Xóa trạng thái cuối cùng
+      let previousState = drawHistory[drawHistory.length - 1];
+
+      drawing.deleteAll(); // Xóa toàn bộ
+      drawing.set(previousState); // Cập nhật lại trạng thái trước đó
+      
+      console.log("↩ Undo thành công!", previousState);
+  } else {
+      console.warn("⚠ Không còn thao tác để undo!");
+  }
+}
+
+
 
       // 📥 Load danh sách bản vẽ từ Firebase
       function loadDrawingsList() {
@@ -752,7 +831,10 @@ loadButton.addEventListener("click", () => {
           console.error("⚠ Lỗi: Không có dữ liệu bản vẽ hoặc bị null!");
       }
   });
+
+
 });
+
 
 
       // 🔄 Load danh sách bản vẽ khi trang mở
@@ -762,6 +844,110 @@ loadButton.addEventListener("click", () => {
       document.querySelector(".draw-line-tool").style.display = "none";
   }
 }
+
+// Button ẩn hết các marker
+const hideAllButton = document.getElementById("hide-all");
+hideAllButton.addEventListener("click", () => {
+  for (const key in userMarkers) {
+    // Tạm thời không cập nhật vịtrí user
+    database.ref(`users/${key}`).update({ isOnline: false });
+    userMarkers[key].remove();
+  }
+}
+);
+
+// Button hiện tất cả các marker
+const showAllButton = document.getElementById("show-all");
+showAllButton.addEventListener("click", () => {
+  // Tạm thời không cập nhật vịtrí user
+  database.ref(`users/${userId}`).update({ isOnline: true });
+  for (const key in userMarkers) {
+    userMarkers[key].addTo(map);
+  }
+}
+);
+
+
+// Custom marker theo user
+
+
+
+const userCustomMarkers = {}; // Lưu trữ các marker đã tạo của user
+
+map.on("click", (e) => {
+    const location = e.lngLat;
+    const markerName = prompt("Nhập tên cho điểm này:");
+    if (!markerName) return; // Nếu không nhập tên, không tạo marker
+
+    const userColor = prompt("Nhập màu cho marker (mã hex hoặc tên màu):") || "#ff0000"; // Màu mặc định là đỏ
+
+    const markerKey = `${userId}_${markerName.replace(/\s+/g, "_").toLowerCase()}`; // Tạo key cho user
+
+    addUserCustomMarker(location, userColor, markerKey, markerName);
+
+    // Lưu toàn bộ marker vào nhánh của userId trong Firebase
+    database.ref(`users/${userId}/markers/${markerKey}`).set({
+        location,
+        color: userColor,
+        label: markerName,
+    });
+});
+
+// ✅ Hàm tạo marker có hiển thị tên ngay lập tức
+function addUserCustomMarker(location, color, key, label) {
+    const el = document.createElement("div");
+    el.className = "user-custom-marker";
+    el.style.backgroundColor = color;
+    el.style.width = "20px";
+    el.style.height = "20px";
+    el.style.borderRadius = "50%";
+
+    const popup = new mapboxgl.Popup().setHTML(`<b class= "custom-lable">${label}</b>`);
+
+    const marker = new mapboxgl.Marker(el)
+        .setLngLat(location)
+        .setPopup(popup)
+        .addTo(map);
+
+        userCustomMarkers[key] = marker; // Lưu lại marker của user
+}
+
+// ✅ Hiển thị lại marker khi đăng nhập
+function loadUserMarkers() {
+    database.ref(`users/${userId}/markers`).once("value", (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+            Object.entries(data).forEach(([key, { location, color, label }]) => {
+              addUserCustomMarker(location, color, key, label);
+            });
+        }
+    });
+}
+
+// ✅ Ẩn hoặc hiện tất cả marker của user
+function toggleMarkers() {
+    loadUserMarkers();
+}
+
+// ✅ Xóa toàn bộ marker của user
+function deleteAllUserMarkers() {
+    if (confirm("Bạn có chắc muốn xóa toàn bộ marker của bạn?")) {
+        Object.values(userMarkers).forEach((marker) => marker.remove());
+        userMarkers = {};
+        database.ref(`users/${userId}/markers`).remove();
+        alert("🗑 Đã xóa toàn bộ marker của bạn!");
+    }
+}
+
+
+document.getElementById("toggle-markers-custom").addEventListener("click", () => {
+  toggleMarkers();
+});
+
+document.getElementById("delete-markers-custom").addEventListener("click", () => {
+  deleteAllUserMarkers();
+});
+
 
 
 });

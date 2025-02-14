@@ -236,9 +236,7 @@ button:hover {
   fill: aliceblue !important;
 }
 
-.admin {
-  display: none;
-}
+
 .logout {
   position: fixed;
   top: 10px;
@@ -249,8 +247,7 @@ button:hover {
   top: 10px;
   left: 150px;
 z-index: 999;
-width: 300px;
-height: auto;
+
 }
 
 .draw-line-tool {
@@ -277,8 +274,59 @@ height: auto;
 }
 
 #load-draw {
-  padding: 8px;
+  padding: 0px 10px;
   border: 1px solid #ccc;
   border-radius: 5px;
   cursor: pointer;
+}
+.admin {
+  display: none;
+}
+
+#marker-control {
+  position: fixed;
+  bottom: 0;
+  right: 10px;
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 10px;
+}
+.bttun-admin-control {
+  color: white;
+  font-size: 12px;
+  background: #3333337a;
+  padding: 5px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+
+
+
+#marker-control button:hover {
+  background: #e64a19;
+}
+
+.user-custom-marker{
+
+  background-color: #e5ff00 !important;
+ 
+
+}
+.mapboxgl-popup-content {
+  background: #00000074 !important;
+  color: #fff !important;
+  padding: 10px 15px !important;
+}
+.mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip {
+  align-self: center;
+  border-bottom: none;
+  border-top-color: #00000074 !important;
+}
+.mapboxgl-popup-close-button {
+  color: #757575 !important;
+ top: -5px !important;
+ right: 0px !important;
 }
