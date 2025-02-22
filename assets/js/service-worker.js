@@ -8,33 +8,30 @@ self.addEventListener("activate", (event) => {
     self.clients.claim();
 });
 
-self.addEventListener("periodicsync", (event) => {
-    if (event.tag === "update-location") {
-        event.waitUntil(updateLocationInBackground());
-    }
-});
+let trackingInterval = null;
 
-// Cập nhật vị trí trong background
-async function updateLocationInBackground() {
-    try {
-        const clients = await self.clients.matchAll({ includeUncontrolled: true });
-        if (clients.length > 0) {
-            clients[0].postMessage({ command: "getLocation" });
-        }
-    } catch (error) {
-        console.error("[Service Worker] Error updating location:", error);
-    }
-}
-
-// Nhận dữ liệu từ client và gửi lên Firebase
 self.addEventListener("message", (event) => {
-    if (event.data && event.data.type === "locationUpdate") {
-        const { location, userId } = event.data;
-        if (userId && location) {
-            updateLocationToFirebase(location, userId);
+    if (event.data.command === "startTracking") {
+        const { userId, interval } = event.data;
+        if (!trackingInterval) {
+            trackingInterval = setInterval(() => {
+                self.clients.matchAll({ includeUncontrolled: true }).then(clients => {
+                    if (clients.length > 0) {
+                        clients[0].postMessage({ command: "requestLocation", userId });
+                    }
+                });
+            }, interval); // 1000ms = 1 giây
+            console.log("[Service Worker] Started tracking every 1s for user:", userId);
         }
-    } else if (event.data && event.data.type === "userId") {
-        console.log("[Service Worker] Received userId:", event.data.userId);
+    } else if (event.data.command === "stopTracking") {
+        if (trackingInterval) {
+            clearInterval(trackingInterval);
+            trackingInterval = null;
+            console.log("[Service Worker] Stopped tracking.");
+        }
+    } else if (event.data.type === "locationUpdate") {
+        const { location, userId } = event.data;
+        updateLocationToFirebase(location, userId);
     }
 });
 

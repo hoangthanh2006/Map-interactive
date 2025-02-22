@@ -198,6 +198,8 @@ const smoothMoveMarker = (userKey, newLocation) => {
 };
 
 // User Tracking with Service Worker Integration
+let watchId = null;
+
 const trackUserLocation = () => {
     if (!userState.id) return;
     if (!navigator.geolocation) {
@@ -207,7 +209,7 @@ const trackUserLocation = () => {
 
     const updateLocation = (position) => {
         const newLocation = { lat: position.coords.latitude, lng: position.coords.longitude };
-        database.ref(`users/${userState.id}`).update({ location: newLocation })
+        database.ref(`users/${userState.id}/location`).update(newLocation)
             .then(() => console.log("📍 Updated location:", newLocation))
             .catch(error => console.error("⚠ Location update error:", error));
         smoothMoveMarker(userState.id, newLocation);
@@ -216,7 +218,7 @@ const trackUserLocation = () => {
         }
     };
 
-    const watchId = navigator.geolocation.watchPosition(
+    watchId = navigator.geolocation.watchPosition(
         updateLocation,
         (error) => console.error("⚠ Location error:", error),
         { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
@@ -224,9 +226,19 @@ const trackUserLocation = () => {
 
     const handleVisibilityChange = () => {
         if (document.visibilityState === "hidden") {
-            console.log("📴 Tab hidden, relying on Service Worker.");
+            console.log("📴 Tab hidden, Service Worker will handle updates.");
+            if (navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({
+                    command: "startTracking",
+                    userId: userState.id,
+                    interval: 1000 // 1 giây
+                });
+            }
         } else {
             console.log("📲 Tab visible, resuming foreground tracking.");
+            if (navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({ command: "stopTracking" });
+            }
             navigator.geolocation.getCurrentPosition(updateLocation);
         }
     };
@@ -234,8 +246,14 @@ const trackUserLocation = () => {
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     const cleanup = () => {
-        navigator.geolocation.clearWatch(watchId);
+        if (watchId !== null) {
+            navigator.geolocation.clearWatch(watchId);
+            watchId = null;
+        }
         document.removeEventListener("visibilitychange", handleVisibilityChange);
+        if (navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({ command: "stopTracking" });
+        }
         console.log("🛑 Stopped tracking location.");
     };
 
@@ -248,39 +266,23 @@ if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("assets/js/service-worker.js")
         .then(registration => {
             console.log("✅ Service Worker registered:", registration);
-            navigator.serviceWorker.ready.then((swRegistration) => {
-                if ("periodicSync" in swRegistration) {
-                    swRegistration.periodicSync.register("update-location", {
-                        minInterval: 60 * 1000 // Cập nhật mỗi 1 phút
-                    })
-                        .then(() => console.log("✅ Periodic Sync registered"))
-                        .catch(error => console.error("⚠ Periodic Sync registration failed:", error));
-                } else {
-                    console.log("ℹ Periodic Sync not supported.");
-                }
-            });
         })
         .catch(error => console.error("⚠ Service Worker registration failed:", error));
 
     navigator.serviceWorker.addEventListener("message", (event) => {
-        if (event.data.command === "getLocation") {
+        if (event.data.command === "requestLocation") {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
                     const location = { lat: position.coords.latitude, lng: position.coords.longitude };
                     navigator.serviceWorker.controller.postMessage({
                         type: "locationUpdate",
                         location: location,
-                        userId: userState.id
+                        userId: event.data.userId
                     });
                 },
                 (error) => console.error("⚠ Geolocation error:", error),
                 { enableHighAccuracy: true }
             );
-        } else if (event.data.command === "getUserId") {
-            navigator.serviceWorker.controller.postMessage({
-                type: "userId",
-                userId: userState.id
-            });
         }
     });
 }
@@ -336,8 +338,8 @@ document.addEventListener("DOMContentLoaded", () => {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
                     const location = { lat: position.coords.latitude, lng: position.coords.longitude };
-                    database.ref(`users/${userState.id}`).update({ location });
-                    addUserMarker(location, userState.color, userState.id, userState.id);
+                    database.ref(`users/${userState.id}/location`).update(location);
+                    addUserMarker(location, userState.color, userState.id, userState.label || userState.id);
                     map.flyTo({ center: [location.lng, location.lat], zoom: 15, speed: 0.5 });
                     cleanupTracking = trackUserLocation();
                     loadOnlineUsers();

@@ -2661,7 +2661,6 @@
       "password": "123456",
       "username": "top2-42km-nam"
     },
-    
     "10km-nam": {
       "color": "#8E44AD",
       "isOnline": false,
@@ -2675,11 +2674,11 @@
     },
     "10km-nu": {
       "color": "#E74C3C",
-      "isOnline": false,
+      "isOnline": true,
       "label": "10km - Nữ",
       "location": {
-        "lat": 10.774327245598183,
-        "lng": 106.68825356415046
+        "lat": 10.78605335330844,
+        "lng": 106.70201744344494
       },
       "password": "123456",
       "username": "10km-nu"
@@ -2750,22 +2749,26 @@
       "password": "123456",
       "username": "top2-42km-nam"
     },
-    
     "21km-nam": {
       "color": "#45B39D",
       "isOnline": false,
       "label": "21km - Nam",
       "location": {
-        "lat": 10.730498346646216,
-        "lng": 106.62464482101757
+        "lat": 10.788344086418634,
+        "lng": 106.70379068309202
       },
       "password": "123456",
       "username": "21km-nam"
     },
     "21km-nu": {
       "color": "#F4D03F",
+      "isOnline": false,
       "label": "21km - Nữ",
-      "password": "21kmnu",
+      "location": {
+        "lat": 10.7753177462323,
+        "lng": 106.6905743005225
+      },
+      "password": "123456",
       "username": "21km-nu"
     },
     "42KM - Nam - Top 1": {
@@ -2773,8 +2776,8 @@
       "isOnline": false,
       "label": "Top 1 - Nam | 42km",
       "location": {
-        "lat": 10.773411074368827,
-        "lng": 106.69378042613747
+        "lat": 10.7725014,
+        "lng": 106.6928769
       },
       "password": "123456",
       "username": "top1-42km-nam"
@@ -2834,14 +2837,13 @@
       "password": "123456",
       "username": "top2-42km-nam"
     },
-    
     "42km-nam": {
       "color": "#FF5733",
       "isOnline": false,
       "label": "42km - Nam",
       "location": {
-        "lat": 10.773411074368827,
-        "lng": 106.69378042613747
+        "lat": 10.775235963901858,
+        "lng": 106.6906415618381
       },
       "password": "123456",
       "username": "42km-nam"
@@ -2851,23 +2853,25 @@
       "isOnline": false,
       "label": "42km - Nữ",
       "location": {
-        "lat": 10.773414331108874,
-        "lng": 106.69375742812537
+        "lat": 10.775231207473583,
+        "lng": 106.69067480309238
       },
       "password": "123456",
       "username": "42km-nu"
     },
-    
     "admin": {
       "color": "#000000",
       "isOnline": false,
       "label": "Admin",
       "location": {
-        "lat": 10.7731368,
-        "lng": 106.693904
+        "lat": 10.7861899,
+        "lng": 106.7019799
       },
       "password": "admin",
       "username": "admin"
+    },
+    "null": {
+      "isOnline": false
     }
   }
 }
