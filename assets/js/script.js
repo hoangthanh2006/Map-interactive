@@ -222,44 +222,69 @@ const trackUserLocation = () => {
         { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
     );
 
+    const handleVisibilityChange = () => {
+        if (document.visibilityState === "hidden") {
+            console.log("📴 Tab hidden, relying on Service Worker.");
+        } else {
+            console.log("📲 Tab visible, resuming foreground tracking.");
+            navigator.geolocation.getCurrentPosition(updateLocation);
+        }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     const cleanup = () => {
         navigator.geolocation.clearWatch(watchId);
+        document.removeEventListener("visibilitychange", handleVisibilityChange);
         console.log("🛑 Stopped tracking location.");
     };
 
     window.addEventListener("beforeunload", cleanup);
-    window.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "hidden") {
-            console.log("📴 Page hidden, relying on Service Worker for location updates.");
-        } else {
-            console.log("📲 Page visible, resuming foreground tracking.");
-        }
-    });
-
     return cleanup;
 };
 
-// Register Service Worker
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('assets/js/service-worker.js')
-      .then(registration => {
-          console.log("✅ Service Worker registered:", registration);
+// Register Service Worker and Handle Communication
+if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("assets/js/service-worker.js")
+        .then(registration => {
+            console.log("✅ Service Worker registered:", registration);
+            navigator.serviceWorker.ready.then((swRegistration) => {
+                if ("periodicSync" in swRegistration) {
+                    swRegistration.periodicSync.register("update-location", {
+                        minInterval: 60 * 1000 // Cập nhật mỗi 1 phút
+                    })
+                        .then(() => console.log("✅ Periodic Sync registered"))
+                        .catch(error => console.error("⚠ Periodic Sync registration failed:", error));
+                } else {
+                    console.log("ℹ Periodic Sync not supported.");
+                }
+            });
+        })
+        .catch(error => console.error("⚠ Service Worker registration failed:", error));
 
-          // Đợi Service Worker sẵn sàng
-          navigator.serviceWorker.ready.then((swRegistration) => {
-              if ('periodicSync' in swRegistration) {
-                  swRegistration.periodicSync.register('update-location', {
-                      minInterval: 60 * 1000 // Cập nhật mỗi 1 phút
-                  })
-                  .then(() => console.log("✅ Periodic Sync registered"))
-                  .catch(error => console.error("⚠ Periodic Sync registration failed:", error));
-              } else {
-                  console.log("ℹ Periodic Sync not supported in this browser.");
-              }
-          });
-      })
-      .catch(error => console.error("⚠ Service Worker registration failed:", error));
+    navigator.serviceWorker.addEventListener("message", (event) => {
+        if (event.data.command === "getLocation") {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const location = { lat: position.coords.latitude, lng: position.coords.longitude };
+                    navigator.serviceWorker.controller.postMessage({
+                        type: "locationUpdate",
+                        location: location,
+                        userId: userState.id
+                    });
+                },
+                (error) => console.error("⚠ Geolocation error:", error),
+                { enableHighAccuracy: true }
+            );
+        } else if (event.data.command === "getUserId") {
+            navigator.serviceWorker.controller.postMessage({
+                type: "userId",
+                userId: userState.id
+            });
+        }
+    });
 }
+
 // Online Users
 const loadOnlineUsers = () => {
     database.ref("users").on("value", (snapshot) => {
